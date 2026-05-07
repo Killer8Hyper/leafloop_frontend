@@ -164,24 +164,8 @@ class _SignUpPageState extends State<SignUpPage> {
                   });
                 },
               ),
-              const SizedBox(height: 5),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Text(
-                    "Must be 8+ chars, 1 capital, 1 number, 1 symbol",
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.03,
-                      color: _passwordController.text.isEmpty 
-                        ? Colors.grey[600] 
-                        : (_isPasswordValid ? Colors.green : Colors.red),
-                      fontWeight: _isPasswordValid ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ),
-
+              const SizedBox(height: 10),
+              _buildPasswordRequirements(screenWidth),
               const SizedBox(height: 20),
 
               _buildLabel("Confirm Password:", screenWidth),
@@ -198,23 +182,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   });
                 },
               ),
-              const SizedBox(height: 5),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Text(
-                    _confirmPasswordController.text.isEmpty 
-                      ? "" 
-                      : (_isPasswordMatch ? "Passwords match!" : "Passwords do not match"),
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.03,
-                      color: _isPasswordMatch ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+              const SizedBox(height: 20),
 
               const SizedBox(height: 50),
 
@@ -406,6 +374,81 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  Widget _buildPasswordRequirements(double screenWidth) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([_passwordController, _confirmPasswordController]),
+      builder: (context, _) {
+        final password = _passwordController.text;
+        final confirm = _confirmPasswordController.text;
+        
+        final hasLength = password.length >= 8;
+        final hasUpper = RegExp(r'[A-Z]').hasMatch(password);
+        final hasNumber = RegExp(r'[0-9]').hasMatch(password);
+        final hasSymbol = RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password);
+        final matches = password.isNotEmpty && password == confirm;
+
+        Widget rule(String text, bool met) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  met ? Icons.check_circle : (password.isEmpty ? Icons.circle_outlined : Icons.cancel),
+                  size: 14,
+                  color: met ? Colors.green : (password.isEmpty ? Colors.grey : Colors.red),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.028,
+                    color: met ? Colors.green[700] : (password.isEmpty ? Colors.grey[600] : Colors.red[700]),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F7FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF3B5236).withOpacity(0.1)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Security Standards',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF3B5236)),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Strong passwords help protect your account.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 20,
+                children: [
+                  rule('8+ characters', hasLength),
+                  rule('Uppercase', hasUpper),
+                  rule('Number', hasNumber),
+                  rule('Symbol', hasSymbol),
+                  rule('Match', matches),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -459,34 +502,61 @@ class _SignUpPageState extends State<SignUpPage> {
 
 class DateInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    String text = newValue.text;
-
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var text = newValue.text;
+    
+    // Handle deletion
     if (text.length < oldValue.text.length) {
       return newValue;
     }
 
+    // Auto-prefix single digit months with 0
+    // If typing '2'-'9' at the very beginning, make it '0D/'
+    if (text.length == 1 && int.tryParse(text) != null && int.parse(text) > 1) {
+      text = '0$text/';
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+
+    // Automatic Slash after Month (index 2)
+    if (text.length == 2 && !text.contains('/')) {
+      text = '$text/';
+    }
+    
+    // Auto-prefix single digit days
+    // If text is 'MM/' and next char is > 3, make it 'MM/0D/'
+    if (text.length == 4 && text.endsWith('/') == false) {
+      var parts = text.split('/');
+      if (parts.length == 2) {
+        var day = parts[1];
+        if (int.tryParse(day) != null && int.parse(day) > 3) {
+          text = '${parts[0]}/0$day/';
+          return TextEditingValue(
+            text: text,
+            selection: TextSelection.collapsed(offset: text.length),
+          );
+        }
+      }
+    }
+
+    // Automatic Slash after Day (index 5)
+    if (text.length == 5 && text.split('/').length == 2 && !text.endsWith('/')) {
+      text = '$text/';
+    }
+
+    // Limit to MM/DD/YYYY (10 chars)
     if (text.length > 10) {
       return oldValue;
     }
 
-    String result = "";
-    String cleanText = text.replaceAll('/', '');
-
-    for (int i = 0; i < cleanText.length; i++) {
-      if (i == 2 || i == 4) {
-        result += "/";
-      }
-      result += cleanText[i];
-    }
-
-    // Edge case handling: if user types '1' and it's the end of the month part, 
-    // and they type something that would trigger a slash, we could pad it.
-    // However, usually masking works best by just adding slashes.
-    
     return TextEditingValue(
-      text: result,
-      selection: TextSelection.collapsed(offset: result.length),
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () async {
                     String username = _usernameController.text.trim();
                     String password = _passwordController.text;
-                    
+                    if (username.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Please enter your username'),
@@ -78,6 +78,9 @@ class _LoginPageState extends State<LoginPage> {
                           margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
                         ),
                       );
+                      return;
+                    }
+
                     if (password.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

@@ -304,19 +304,61 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
 class DateInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    String text = newValue.text;
-    if (text.length < oldValue.text.length) return newValue;
-    if (text.length > 10) return oldValue;
-    String result = "";
-    String cleanText = text.replaceAll('/', '');
-    for (int i = 0; i < cleanText.length; i++) {
-      if (i == 2 || i == 4) result += "/";
-      result += cleanText[i];
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var text = newValue.text;
+    
+    // Handle deletion
+    if (text.length < oldValue.text.length) {
+      return newValue;
     }
+
+    // Auto-prefix single digit months with 0
+    // If typing '2'-'9' at the very beginning, make it '0D/'
+    if (text.length == 1 && int.tryParse(text) != null && int.parse(text) > 1) {
+      text = '0$text/';
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+
+    // Automatic Slash after Month (index 2)
+    if (text.length == 2 && !text.contains('/')) {
+      text = '$text/';
+    }
+    
+    // Auto-prefix single digit days
+    // If text is 'MM/' and next char is > 3, make it 'MM/0D/'
+    if (text.length == 4 && text.endsWith('/') == false) {
+      var parts = text.split('/');
+      if (parts.length == 2) {
+        var day = parts[1];
+        if (int.tryParse(day) != null && int.parse(day) > 3) {
+          text = '${parts[0]}/0$day/';
+          return TextEditingValue(
+            text: text,
+            selection: TextSelection.collapsed(offset: text.length),
+          );
+        }
+      }
+    }
+
+    // Automatic Slash after Day (index 5)
+    if (text.length == 5 && text.split('/').length == 2 && !text.endsWith('/')) {
+      text = '$text/';
+    }
+
+    // Limit to MM/DD/YYYY (10 chars)
+    if (text.length > 10) {
+      return oldValue;
+    }
+
     return TextEditingValue(
-      text: result,
-      selection: TextSelection.collapsed(offset: result.length),
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }
