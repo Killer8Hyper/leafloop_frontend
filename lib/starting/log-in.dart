@@ -94,7 +94,11 @@ class _LoginPageState extends State<LoginPage> {
                     
                     var user = await DatabaseHelper().getUserByUsername(username);
                     if (user != null && user['password_hash'] == password) {
-                      await LocalAuthService().login(user['id'], user['username']);
+                      await LocalAuthService().login(
+                        user['id'], 
+                        user['username'], 
+                        isAdmin: user['is_admin'] == 1,
+                      );
                       // Navigate and replace current route so user can't go back to login
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (context) => const HomePage()),

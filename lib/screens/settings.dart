@@ -11,6 +11,8 @@ import 'package:leafloop/screens/settings_pages/help_center.dart';
 import 'package:leafloop/screens/settings_pages/about_leafloop.dart';
 // IMPORT YOUR LOGIN SCREEN HERE
 import 'package:leafloop/starting/log-in.dart';
+import 'package:leafloop/services/local_auth_service.dart';
+import 'package:leafloop/screens/settings_pages/admin_dashboard.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -98,6 +100,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
+          if (LocalAuthService().isAdmin) ...[
+            const SizedBox(height: 20),
+            _buildSectionHeader("Management"),
+            _buildSettingsTile(
+              icon: Icons.admin_panel_settings_outlined,
+              title: "Admin Dashboard",
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AdminDashboard()),
+              ),
+            ),
+          ],
           const SizedBox(height: 40),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

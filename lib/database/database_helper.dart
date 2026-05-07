@@ -18,7 +18,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'leafloop.db');
     return await openDatabase(
       path,
-      version: 5,
+      version: 8,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -37,21 +37,42 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE users ADD COLUMN middle_name TEXT');
       await db.execute('ALTER TABLE users ADD COLUMN last_name TEXT');
     }
-    if (oldVersion < 4) {
-      // Version 4: Add date_of_birth (Safe check)
-      try {
-        await db.execute('ALTER TABLE users ADD COLUMN date_of_birth TEXT');
-      } catch (e) {
-        // Column might already exist
-      }
-    }
     if (oldVersion < 5) {
       // Version 5: Ensuring Date of Birth is present
       try {
         await db.execute('ALTER TABLE users ADD COLUMN date_of_birth TEXT');
-      } catch (e) {
-        // Safe to ignore if already exists
-      }
+      } catch (e) {}
+    }
+    if (oldVersion < 6) {
+      // Version 6: Add is_admin column
+      try {
+        await db.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0');
+        // Seed default admin if not exists
+        await db.insert('users', {
+          'username': 'admin',
+          'email': 'admin@leafloop.com',
+          'password_hash': 'P@ssw0rd',
+          'first_name': 'LeafLoop',
+          'last_name': 'Admin',
+          'is_admin': 1
+        });
+      } catch (e) {}
+    }
+    if (oldVersion < 7) {
+      // Version 7: Update Admin Password to secure version
+      await db.update(
+        'users',
+        {'password_hash': 'P@ssw0rd'},
+        where: 'username = ?',
+        whereArgs: ['admin'],
+      );
+    }
+    if (oldVersion < 8) {
+      // Version 8: Add note and image_path to user_missions
+      try {
+        await db.execute('ALTER TABLE user_missions ADD COLUMN note TEXT');
+        await db.execute('ALTER TABLE user_missions ADD COLUMN image_path TEXT');
+      } catch (e) {}
     }
   }
 
@@ -75,9 +96,20 @@ class DatabaseHelper {
         easy_completed INTEGER DEFAULT 0,
         medium_completed INTEGER DEFAULT 0,
         hard_completed INTEGER DEFAULT 0,
+        is_admin INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     ''');
+
+    // Seed default admin
+    await db.insert('users', {
+      'username': 'admin',
+      'email': 'admin@leafloop.com',
+      'password_hash': 'P@ssw0rd',
+      'first_name': 'LeafLoop',
+      'last_name': 'Admin',
+      'is_admin': 1
+    });
 
     // Missions table
     await db.execute('''
@@ -98,9 +130,11 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         mission_id INTEGER,
-        completed_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        FOREIGN KEY(mission_id) REFERENCES missions(id)
+        completed_date DATETIME,
+        note TEXT,
+        image_path TEXT,
+        FOREIGN KEY (user_id) REFERENCES users (id),
+        FOREIGN KEY (mission_id) REFERENCES missions (id)
       )
     ''');
 
@@ -155,7 +189,7 @@ class DatabaseHelper {
   // ==================== USER METHODS ====================
 
   Future<int> createUser(String username, String email, String passwordHash, int energyLevel, 
-      {String? profileImagePath, String? firstName, String? middleName, String? lastName, String? dob}) async {
+      {String? profileImagePath, String? firstName, String? middleName, String? lastName, String? dob, int isAdmin = 0}) async {
     final db = await database;
     return await db.insert('users', {
       'username': username,
@@ -167,6 +201,7 @@ class DatabaseHelper {
       'middle_name': middleName,
       'last_name': lastName,
       'date_of_birth': dob,
+      'is_admin': isAdmin,
       'created_at': DateTime.now().toIso8601String(),
     });
   }
@@ -213,6 +248,12 @@ class DatabaseHelper {
       whereArgs: [userId],
     );
     return result.isNotEmpty ? result.first : null;
+  }
+
+  // Get all users
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    final db = await database;
+    return await db.query('users', orderBy: 'created_at DESC');
   }
 
   // Update user energy level
@@ -309,8 +350,35 @@ class DatabaseHelper {
     return result.isNotEmpty ? result.first : null;
   }
 
+  // Add a new mission
+  Future<int> addMission(Map<String, dynamic> mission) async {
+    final db = await database;
+    return await db.insert('missions', mission);
+  }
+
+  // Update a mission
+  Future<int> updateMission(int id, Map<String, dynamic> mission) async {
+    final db = await database;
+    return await db.update(
+      'missions',
+      mission,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Delete a mission
+  Future<int> deleteMission(int id) async {
+    final db = await database;
+    return await db.delete(
+      'missions',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // Complete a mission
-  Future<void> completeMission(int userId, int missionId) async {
+  Future<void> completeMission(int userId, int missionId, {String? note, String? imagePath}) async {
     final db = await database;
     
     String today = DateTime.now().toIso8601String().substring(0, 10);
@@ -352,6 +420,8 @@ class DatabaseHelper {
       'user_id': userId,
       'mission_id': missionId,
       'completed_date': DateTime.now().toIso8601String(),
+      'note': note,
+      'image_path': imagePath,
     });
     
     // Update user stats

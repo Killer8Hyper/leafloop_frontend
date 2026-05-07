@@ -6,6 +6,7 @@ import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
 import 'package:leafloop/starting/landing_page.dart';
+import 'package:leafloop/screens/settings.dart';
 import 'dart:io';
 
 class ProfileScreen extends StatefulWidget {
@@ -71,56 +72,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Colors.white,
               ),
               onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Theme.of(context).cardColor,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (context) => Container(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          "Settings",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Divider(),
-                        ListTile(
-                          leading: const Icon(Icons.person_outline),
-                          title: const Text("Edit Profile"),
-                          onTap: () => Navigator.pop(context),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.notifications_none),
-                          title: const Text("Notifications"),
-                          onTap: () => Navigator.pop(context),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.logout, color: Colors.red),
-                          title: const Text(
-                            "Logout",
-                            style: TextStyle(color: Colors.red),
-                          ),
-                          onTap: () async {
-                            Navigator.pop(context);
-                            await LocalAuthService().logout();
-                            if (mounted) {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (context) => const LandingPage()),
-                                (route) => false,
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
                 );
               },
             ),

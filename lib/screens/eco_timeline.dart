@@ -7,6 +7,7 @@ import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
 
 class EcoTimeline extends StatefulWidget {
   const EcoTimeline({super.key});
@@ -84,6 +85,8 @@ class _EcoTimelineState extends State<EcoTimeline> {
                     formattedTime,
                     Icons.check_circle_outline,
                     Colors.green,
+                    note: m['note'],
+                    imagePath: m['image_path'],
                   ),
                 ],
               );
@@ -181,8 +184,10 @@ class _EcoTimelineState extends State<EcoTimeline> {
     String title,
     String time,
     IconData icon,
-    Color iconColor,
-  ) {
+    Color iconColor, {
+    String? note,
+    String? imagePath,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(15),
@@ -190,30 +195,67 @@ class _EcoTimelineState extends State<EcoTimeline> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CircleAvatar(
-            backgroundColor: Color(0xFFA8C69F),
-            child: Icon(Icons.check, color: Colors.white),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+          Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: Color(0xFFA8C69F),
+                child: Icon(Icons.check, color: Colors.white),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(time, style: const TextStyle(color: Colors.orangeAccent)),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(time, style: const TextStyle(color: Colors.orangeAccent)),
-              ],
-            ),
+              ),
+              Icon(icon, color: iconColor, size: 30),
+            ],
           ),
-          Icon(icon, color: iconColor, size: 30),
+          if (note != null && note.isNotEmpty) ...[
+            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.all(12),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                note,
+                style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 14),
+              ),
+            ),
+          ],
+          if (imagePath != null && imagePath.isNotEmpty) ...[
+            const SizedBox(height: 15),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.file(
+                File(imagePath),
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 100,
+                  color: Colors.grey[200],
+                  child: const Center(child: Text("Image no longer available")),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
