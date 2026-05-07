@@ -155,7 +155,11 @@ class _SignUpPageState extends State<SignUpPage> {
 
                     if (username.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a username')),
+                        SnackBar(
+                          content: const Text('Please enter a username'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
                       );
                       return;
                     }
@@ -164,14 +168,22 @@ class _SignUpPageState extends State<SignUpPage> {
                     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                     if (email.isEmpty || !emailRegex.hasMatch(email)) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a valid email address')),
+                        SnackBar(
+                          content: const Text('Please enter a valid email address'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
                       );
                       return;
                     }
 
                     if (password.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a password')),
+                        SnackBar(
+                          content: const Text('Please enter a password'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
                       );
                       return;
                     }
@@ -180,9 +192,11 @@ class _SignUpPageState extends State<SignUpPage> {
                     final passwordRegex = RegExp(r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$');
                     if (!passwordRegex.hasMatch(password)) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Password must be 8+ chars, with 1 capital, 1 number, and 1 symbol'),
-                          duration: Duration(seconds: 3),
+                        SnackBar(
+                          content: const Text('Password must be 8+ chars, with 1 capital, 1 number, and 1 symbol'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                          duration: const Duration(seconds: 3),
                         ),
                       );
                       return;
@@ -190,7 +204,11 @@ class _SignUpPageState extends State<SignUpPage> {
 
                     if (password != confirmPassword) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Passwords do not match')),
+                        SnackBar(
+                          content: const Text('Passwords do not match'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
                       );
                       return;
                     }

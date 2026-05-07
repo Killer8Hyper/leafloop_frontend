@@ -43,6 +43,31 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
     }
   }
 
+  void _handleInteraction(Offset localPosition, Size size) {
+    // The meter is centered horizontally and at the bottom vertically of its container
+    final double centerX = size.width / 2;
+    final double centerY = size.height; // Since the height is radius
+    
+    // Calculate angle from center to touch point
+    double angle = math.atan2(localPosition.dy - centerY, localPosition.dx - centerX);
+    
+    // For the top half of the meter:
+    // Left side (1) is at pi (approx 3.14) or -pi
+    // Right side (100) is at 0
+    if (angle < 0) {
+      double normalizedAngle = angle.abs(); // 0 (right) to pi (left)
+      
+      // Map pi (left) -> 1, 0 (right) -> 100
+      double percentage = 1.0 - (normalizedAngle / math.pi); // 0 (left) to 1 (right)
+      double newValue = (percentage * 99) + 1;
+      
+      setState(() {
+        _currentEnergyValue = newValue.clamp(1, 100);
+        _energyController.text = _currentEnergyValue.toInt().toString();
+      });
+    }
+  }
+
   // --- NEW: POPUP LOGIC ---
   void _showEnergySetPopup() {
     showDialog(
@@ -131,79 +156,89 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
               const SizedBox(height: 100),
 
               Center(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: screenWidth * 0.85,
-                      height: screenWidth * 0.45,
-                      child: CustomPaint(
-                        painter: EnergyMeterPainter(
-                          value: _currentEnergyValue,
-                          screenWidth: screenWidth,
-                          needleColor:
-                              Theme.of(context).textTheme.bodyLarge?.color ??
-                              const Color(0xFF2E2E2E),
+                child: GestureDetector(
+                  onPanUpdate: (details) {
+                    RenderBox renderBox = context.findRenderObject() as RenderBox;
+                    _handleInteraction(details.localPosition, renderBox.size);
+                  },
+                  onTapDown: (details) {
+                    RenderBox renderBox = context.findRenderObject() as RenderBox;
+                    _handleInteraction(details.localPosition, renderBox.size);
+                  },
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: screenWidth * 0.85,
+                        height: screenWidth * 0.45,
+                        child: CustomPaint(
+                          painter: EnergyMeterPainter(
+                            value: _currentEnergyValue,
+                            screenWidth: screenWidth,
+                            needleColor:
+                                Theme.of(context).textTheme.bodyLarge?.color ??
+                                const Color(0xFF2E2E2E),
+                          ),
                         ),
                       ),
-                    ),
-                    // Green Icon
-                    Positioned(
-                      left: -25,
-                      bottom: 100,
-                      child: Column(
-                        children: [
-                          const Text(
-                            "Z Z Z",
-                            style: TextStyle(
-                              color: Color(0xFF67AC78),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                      // Green Icon
+                      Positioned(
+                        left: -25,
+                        bottom: 100,
+                        child: Column(
+                          children: [
+                            const Text(
+                              "Z Z Z",
+                              style: TextStyle(
+                                color: Color(0xFF67AC78),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                          Icon(
-                            Icons.person,
-                            size: screenWidth * 0.12,
-                            color: const Color(0xFF67AC78),
-                          ),
-                        ],
+                            Icon(
+                              Icons.person,
+                              size: screenWidth * 0.12,
+                              color: const Color(0xFF67AC78),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    // Yellow Icon
-                    Positioned(
-                      top: -65,
-                      child: Icon(
-                        Icons.accessibility_new,
-                        size: screenWidth * 0.15,
-                        color: const Color(0xFFE9CE5B),
+                      // Yellow Icon
+                      Positioned(
+                        top: -65,
+                        child: Icon(
+                          Icons.accessibility_new,
+                          size: screenWidth * 0.15,
+                          color: const Color(0xFFE9CE5B),
+                        ),
                       ),
-                    ),
-                    // Orange Icon
-                    Positioned(
-                      right: -55,
-                      bottom: 100,
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.bolt,
-                            color: Color(0xFFF1A851),
-                            size: 16,
-                          ),
-                          Icon(
-                            Icons.directions_run,
-                            size: screenWidth * 0.15,
-                            color: const Color(0xFFF1A851),
-                          ),
-                          const Icon(
-                            Icons.bolt,
-                            color: Color(0xFFF1A851),
-                            size: 16,
-                          ),
-                        ],
+                      // Orange Icon
+                      Positioned(
+                        right: -55,
+                        bottom: 100,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.bolt,
+                              color: Color(0xFFF1A851),
+                              size: 16,
+                            ),
+                            Icon(
+                              Icons.directions_run,
+                              size: screenWidth * 0.15,
+                              color: const Color(0xFFF1A851),
+                            ),
+                            const Icon(
+                              Icons.bolt,
+                              color: Color(0xFFF1A851),
+                              size: 16,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 

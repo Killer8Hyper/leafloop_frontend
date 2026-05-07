@@ -16,6 +16,8 @@ class MissionsScreen extends StatefulWidget {
 class _MissionsScreenState extends State<MissionsScreen> {
   List<Map<String, dynamic>> _missions = [];
   Set<int> _completedMissionIds = {};
+  bool _isProcessing = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -24,30 +26,51 @@ class _MissionsScreenState extends State<MissionsScreen> {
   }
 
   Future<void> _loadMissions() async {
-    int? userId = LocalAuthService().currentUserId;
-    if (userId != null) {
-      var allMissions = await DatabaseHelper().getAllMissions();
-      var completedMissions = await DatabaseHelper().getUserCompletedMissions(userId);
-      
-      if (mounted) {
-        setState(() {
-          _missions = allMissions;
-          _completedMissionIds = completedMissions.map((m) => m['mission_id'] as int).toSet();
-        });
+    try {
+      int? userId = LocalAuthService().currentUserId;
+      if (userId != null) {
+        var allMissions = await DatabaseHelper().getAllMissions();
+        var completedMissions = await DatabaseHelper().getUserCompletedMissions(userId);
+        
+        if (mounted) {
+          setState(() {
+            _missions = allMissions;
+            _completedMissionIds = completedMissions.map((m) => m['mission_id'] as int).toSet();
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
       }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _completeMission(int missionId) async {
+    if (_isProcessing) return;
+    
     int? userId = LocalAuthService().currentUserId;
     if (userId != null && !_completedMissionIds.contains(missionId)) {
+      setState(() => _isProcessing = true);
+      
       await DatabaseHelper().completeMission(userId, missionId);
-      setState(() {
-        _completedMissionIds.add(missionId);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mission completed! Streak updated.')),
-      );
+      
+      if (mounted) {
+        setState(() {
+          _completedMissionIds.add(missionId);
+          _isProcessing = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Mission completed! Streak updated.'),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(bottom: 120, left: 20, right: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -113,7 +136,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: () => _loadMissions(),
                       icon: Icon(
                         Icons.refresh,
                         size: 35,
@@ -131,14 +154,29 @@ class _MissionsScreenState extends State<MissionsScreen> {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 25),
               children: [
-                if (_missions.isEmpty)
-                  const Center(child: CircularProgressIndicator())
+                if (_isLoading)
+                  const Center(child: Padding(
+                    padding: EdgeInsets.only(top: 100),
+                    child: CircularProgressIndicator(),
+                  ))
+                else if (_missions.isEmpty)
+                  const Center(child: Padding(
+                    padding: EdgeInsets.only(top: 100),
+                    child: Text(
+                      "No missions available yet.",
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                  ))
                 else
-                  ..._missions.map((m) => _buildMissionCard(
-                    context,
-                    m,
-                    _completedMissionIds.contains(m['id']),
-                  )).toList(),
+                  RepaintBoundary(
+                    child: Column(
+                      children: _missions.map((m) => _buildMissionCard(
+                        context,
+                        m,
+                        _completedMissionIds.contains(m['id']),
+                      )).toList(),
+                    ),
+                  ),
                 const SizedBox(height: 100), // Space for bottom nav
               ],
             ),

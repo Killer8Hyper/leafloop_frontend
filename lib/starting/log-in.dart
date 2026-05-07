@@ -71,15 +71,20 @@ class _LoginPageState extends State<LoginPage> {
                     String username = _usernameController.text.trim();
                     String password = _passwordController.text;
                     
-                    if (username.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter your username')),
+                        SnackBar(
+                          content: const Text('Please enter your username'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
                       );
-                      return;
-                    }
                     if (password.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter your password')),
+                        SnackBar(
+                          content: const Text('Please enter your password'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
                       );
                       return;
                     }
@@ -93,7 +98,11 @@ class _LoginPageState extends State<LoginPage> {
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Invalid username or password')),
+                        SnackBar(
+                          content: const Text('Invalid username or password'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
                       );
                     }
                   },

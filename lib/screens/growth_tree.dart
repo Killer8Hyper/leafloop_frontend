@@ -112,24 +112,26 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
               width: double.infinity,
               color: Theme.of(context).cardColor,
               child: Center(
-                child: Lottie.asset(
-                  'assets/animations/tree.json',
-                  controller: _lottieController,
-                  delegates: LottieDelegates(
-                    values: [
-                      ValueDelegate.opacity([
-                        '**',
-                        'Background',
-                        '**',
-                      ], value: 0),
-                      ValueDelegate.opacity(['**', 'Solid', '**'], value: 0),
-                    ],
+                child: RepaintBoundary(
+                  child: Lottie.asset(
+                    'assets/animations/tree.json',
+                    controller: _lottieController,
+                    delegates: LottieDelegates(
+                      values: [
+                        ValueDelegate.opacity([
+                          '**',
+                          'Background',
+                          '**',
+                        ], value: 0),
+                        ValueDelegate.opacity(['**', 'Solid', '**'], value: 0),
+                      ],
+                    ),
+                    onLoaded: (composition) {
+                      _lottieController.duration = composition.duration;
+                      _lottieController.value = 0.0;
+                      _lottieController.animateTo(_currentGrowth, curve: Curves.easeInOut, duration: const Duration(seconds: 2));
+                    },
                   ),
-                  onLoaded: (composition) {
-                    _lottieController.duration = composition.duration;
-                    _lottieController.value = 0.0;
-                    _lottieController.animateTo(_currentGrowth, curve: Curves.easeInOut, duration: const Duration(seconds: 2));
-                  },
                 ),
               ),
             ),
