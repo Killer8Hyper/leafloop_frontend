@@ -50,7 +50,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
               _buildLabel("Username:", screenWidth),
               const SizedBox(height: 8),
-              _buildTextField(controller: _usernameController, hintText: "Choose a unique username"),
+              _buildTextField(controller: _usernameController, hintText: "enter username (ex. JuanDelaCruz)"),
 
               const SizedBox(height: 20),
 
@@ -58,7 +58,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _emailController, 
-                hintText: "Enter your email",
+                hintText: "enter email (ex. juan@email.com)",
                 keyboardType: TextInputType.emailAddress,
               ),
 
@@ -68,7 +68,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _passwordController,
-                hintText: "",
+                hintText: "min. 8 chars, 1 capital, 1 number, 1 symbol",
                 isPassword: true,
                 obscureText: _obscurePassword,
                 onToggleVisibility: () {
@@ -84,7 +84,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _confirmPasswordController,
-                hintText: "",
+                hintText: "re-enter your password",
                 isPassword: true,
                 obscureText: _obscureConfirm,
                 onToggleVisibility: () {
@@ -114,7 +114,9 @@ class _SignUpPageState extends State<SignUpPage> {
                       return;
                     }
 
-                    if (email.isEmpty || !email.contains('@')) {
+                    // Simple Email Regex
+                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    if (email.isEmpty || !emailRegex.hasMatch(email)) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Please enter a valid email address')),
                       );
@@ -128,9 +130,14 @@ class _SignUpPageState extends State<SignUpPage> {
                       return;
                     }
 
-                    if (password.length < 6) {
+                    // Password Validation Regex: 8+ chars, 1 capital, 1 number, 1 symbol
+                    final passwordRegex = RegExp(r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$');
+                    if (!passwordRegex.hasMatch(password)) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Password must be at least 6 characters')),
+                        const SnackBar(
+                          content: Text('Password must be 8+ chars, with 1 capital, 1 number, and 1 symbol'),
+                          duration: Duration(seconds: 3),
+                        ),
                       );
                       return;
                     }

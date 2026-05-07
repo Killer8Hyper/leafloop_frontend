@@ -46,13 +46,13 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 40),
               _buildLabel("Username:", screenWidth),
               const SizedBox(height: 8),
-              _buildTextField(controller: _usernameController, hintText: ""),
+              _buildTextField(controller: _usernameController, hintText: "enter username (ex. JuanDelaCruz)"),
               const SizedBox(height: 20),
               _buildLabel("Password:", screenWidth),
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _passwordController,
-                hintText: "",
+                hintText: "enter your password",
                 isPassword: true,
                 obscureText: _obscurePassword,
                 onToggleVisibility: () {
