@@ -18,9 +18,19 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'leafloop.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('DROP TABLE IF EXISTS user_missions');
+      await db.execute('DROP TABLE IF EXISTS missions');
+      await db.execute('DROP TABLE IF EXISTS users');
+      await _onCreate(db, newVersion);
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -31,6 +41,7 @@ class DatabaseHelper {
         username TEXT UNIQUE,
         email TEXT UNIQUE,
         password_hash TEXT,
+        profile_image_path TEXT,
         energy_level INTEGER DEFAULT 2,
         current_streak INTEGER DEFAULT 0,
         longest_streak INTEGER DEFAULT 0,
@@ -118,12 +129,13 @@ class DatabaseHelper {
   // ==================== USER METHODS ====================
 
   // Create user
-  Future<int> createUser(String username, String email, String passwordHash, int energyLevel) async {
+  Future<int> createUser(String username, String email, String passwordHash, int energyLevel, {String? profileImagePath}) async {
     final db = await database;
     return await db.insert('users', {
       'username': username,
       'email': email,
       'password_hash': passwordHash,
+      'profile_image_path': profileImagePath,
       'energy_level': energyLevel,
       'created_at': DateTime.now().toIso8601String(),
     });

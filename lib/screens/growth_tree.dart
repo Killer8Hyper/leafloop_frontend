@@ -4,24 +4,9 @@ import 'package:leafloop/screens/homepage.dart';
 import 'package:leafloop/screens/eco_timeline.dart';
 import 'package:leafloop/screens/missions.dart';
 import 'package:leafloop/screens/profile.dart';
-// Import the navigation menu helper
 import 'package:leafloop/widgets/nav_menu.dart';
-
-void main() => runApp(const LeafLoopApp());
-
-class LeafLoopApp extends StatelessWidget {
-  const LeafLoopApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'LeafLoop',
-      theme: ThemeData(primarySwatch: Colors.green, useMaterial3: true),
-      home: const TreeGrowthScreen(),
-    );
-  }
-}
+import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/services/local_auth_service.dart';
 
 class TreeGrowthScreen extends StatefulWidget {
   const TreeGrowthScreen({super.key});
@@ -33,6 +18,7 @@ class TreeGrowthScreen extends StatefulWidget {
 class _TreeGrowthScreenState extends State<TreeGrowthScreen>
     with SingleTickerProviderStateMixin {
   double _currentGrowth = 0.0;
+  int _longestStreak = 0;
   late AnimationController _lottieController;
 
   @override
@@ -42,15 +28,24 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     );
+    _loadData();
   }
 
-  void _waterTree() {
-    if (_currentGrowth < 1.0) {
-      double nextStage = (_currentGrowth + 0.1).clamp(0.0, 1.0);
-      _lottieController.animateTo(nextStage, curve: Curves.easeInOut);
-      setState(() {
-        _currentGrowth = nextStage;
-      });
+  Future<void> _loadData() async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId != null) {
+      var user = await DatabaseHelper().getUserById(userId);
+      if (user != null && mounted) {
+        setState(() {
+          _longestStreak = user['longest_streak'] ?? 0;
+          int totalMissions = user['total_missions'] ?? 0;
+          // Tree fully grows at 50 missions.
+          _currentGrowth = (totalMissions / 50.0).clamp(0.0, 1.0);
+        });
+        
+        // Animate the tree up to the earned growth
+        _lottieController.animateTo(_currentGrowth, curve: Curves.easeInOut, duration: const Duration(seconds: 2));
+      }
     }
   }
 
@@ -95,12 +90,12 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
                 color: const Color(0xFFD6A573),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.water_drop, color: Color(0xFF21558E)),
-                  SizedBox(width: 10),
+                  const Icon(Icons.water_drop, color: Color(0xFF21558E)),
+                  const SizedBox(width: 10),
                   Text(
-                    'Longest Streak: 27 Days',
+                    'Longest Streak: $_longestStreak Days',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -132,6 +127,8 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
                   ),
                   onLoaded: (composition) {
                     _lottieController.duration = composition.duration;
+                    _lottieController.value = 0.0;
+                    _lottieController.animateTo(_currentGrowth, curve: Curves.easeInOut, duration: const Duration(seconds: 2));
                   },
                 ),
               ),
@@ -171,12 +168,6 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
         ],
       ),
       bottomNavigationBar: _buildBottomNav(context),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _waterTree,
-        backgroundColor: Theme.of(context).primaryColor,
-        mini: true,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 

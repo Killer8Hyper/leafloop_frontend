@@ -3,12 +3,48 @@ import 'package:leafloop/screens/homepage.dart';
 import 'package:leafloop/screens/eco_timeline.dart';
 import 'package:leafloop/screens/missions.dart';
 import 'package:leafloop/widgets/nav_menu.dart';
+import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/services/local_auth_service.dart';
+import 'package:leafloop/starting/landing_page.dart';
+import 'dart:io';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Map<String, dynamic>? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId != null) {
+      var user = await DatabaseHelper().getUserById(userId);
+      if (mounted) {
+        setState(() {
+          _user = user;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    int totalMissions = _user?['total_missions'] ?? 0;
+    int energyLevel = _user?['energy_level'] ?? 2;
+    
+    // Calculate eco type and progress
+    String ecoType = energyLevel == 1 ? "Beginner" : energyLevel == 2 ? "Eco-Warrior" : "Master";
+    double progress = (totalMissions % 10) / 10.0;
+    String percentage = "${(progress * 100).toInt()}%";
     return Scaffold(
       // Dynamic background based on theme
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -28,10 +64,21 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Icon(
-              Icons.account_circle,
-              size: 50,
-              color: Theme.of(context).scaffoldBackgroundColor,
+            IconButton(
+              icon: Icon(
+                Icons.logout,
+                size: 35,
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
+              onPressed: () async {
+                await LocalAuthService().logout();
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LandingPage()),
+                    (route) => false,
+                  );
+                }
+              },
             ),
           ],
         ),
@@ -64,27 +111,28 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       CircleAvatar(
                         radius: 60,
-                        backgroundColor: Theme.of(
-                          context,
-                        ).scaffoldBackgroundColor,
-                        child: Icon(
+                        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                        backgroundImage: _user?['profile_image_path'] != null 
+                            ? FileImage(File(_user!['profile_image_path'])) 
+                            : null,
+                        child: _user?['profile_image_path'] == null ? Icon(
                           Icons.person,
                           size: 80,
                           color: Theme.of(context).primaryColor,
-                        ),
+                        ) : null,
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        "Username123",
-                        style: TextStyle(
+                      Text(
+                        _user?['username'] ?? "Loading...",
+                        style: const TextStyle(
                           fontSize: 28,
                           color: Colors.white,
                           decoration: TextDecoration.underline,
                         ),
                       ),
-                      const Text(
-                        "Eco-Type",
-                        style: TextStyle(fontSize: 34, color: Colors.white),
+                      Text(
+                        ecoType,
+                        style: const TextStyle(fontSize: 34, color: Colors.white),
                       ),
                     ],
                   ),
@@ -101,23 +149,23 @@ class ProfileScreen extends StatelessWidget {
                       _buildProfileCard(
                         context: context,
                         title: "Progression",
-                        status: "Green Grower",
+                        status: totalMissions >= 10 ? "Green Grower" : "Seedling",
                         description:
                             "\"Building momentum, one eco-action at a time.\"",
-                        percentage: "47%",
-                        progress: 0.47,
+                        percentage: percentage,
+                        progress: progress,
                         icon: Icons.emoji_events_outlined,
                       ),
                       const SizedBox(height: 20),
                       _buildProfileCard(
                         context: context,
-                        title: "Behavior",
-                        status: "Water Wizard",
+                        title: "Stats",
+                        status: "Active",
                         description:
-                            "\"Every drop counts, and you make them matter.\"",
+                            "Total Missions: $totalMissions\nLongest Streak: ${_user?['longest_streak'] ?? 0}",
                         percentage: "",
                         progress: 0.0,
-                        icon: Icons.opacity,
+                        icon: Icons.bar_chart,
                       ),
                     ],
                   ),

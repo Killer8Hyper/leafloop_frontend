@@ -8,8 +8,9 @@ import 'package:leafloop/services/local_auth_service.dart';
 class EnergyLevelPage extends StatefulWidget {
   final String username;
   final String password;
+  final String? profileImagePath;
 
-  const EnergyLevelPage({super.key, required this.username, required this.password});
+  const EnergyLevelPage({super.key, required this.username, required this.password, this.profileImagePath});
 
   @override
   State<EnergyLevelPage> createState() => _EnergyLevelPageState();
@@ -256,7 +257,8 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                           widget.username,
                           '${widget.username}@leafloop.com', // Dummy email for now
                           widget.password,
-                          energyLevel
+                          energyLevel,
+                          profileImagePath: widget.profileImagePath
                       );
                       await LocalAuthService().login(userId, widget.username);
                       

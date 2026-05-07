@@ -4,9 +4,40 @@ import 'package:leafloop/screens/missions.dart';
 import 'package:leafloop/screens/profile.dart';
 // Import the navigation menu helper
 import 'package:leafloop/widgets/nav_menu.dart';
+import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/services/local_auth_service.dart';
+import 'package:intl/intl.dart';
 
-class EcoTimeline extends StatelessWidget {
+class EcoTimeline extends StatefulWidget {
   const EcoTimeline({super.key});
+
+  @override
+  State<EcoTimeline> createState() => _EcoTimelineState();
+}
+
+class _EcoTimelineState extends State<EcoTimeline> {
+  List<Map<String, dynamic>> _completedMissions = [];
+  int _currentStreak = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId != null) {
+      var missions = await DatabaseHelper().getUserCompletedMissions(userId);
+      var user = await DatabaseHelper().getUserById(userId);
+      if (mounted) {
+        setState(() {
+          _completedMissions = missions;
+          _currentStreak = user?['current_streak'] ?? 0;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,36 +66,28 @@ class EcoTimeline extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
         children: [
-          _buildDateHeader(context, "Today, Feb, 20"),
-          const SizedBox(height: 15),
-          _buildTimelineItem(
-            context,
-            "Brought reusable water",
-            "8:30 am",
-            Icons.water_drop,
-            Colors.blue,
-          ),
-          _buildTimelineItem(
-            context,
-            "Recycled 3 Times",
-            "9:00 am",
-            Icons.recycling,
-            Colors.green,
-          ),
-          _buildTimelineItem(
-            context,
-            "Plant a seed",
-            "9:30 am",
-            Icons.eco,
-            Colors.brown,
-          ),
-          _buildTimelineItem(
-            context,
-            "Biked to School",
-            "5:30 pm",
-            Icons.directions_bike,
-            Colors.black54, // Changed to 54 for better dark mode visibility
-          ),
+          if (_completedMissions.isEmpty)
+            const Center(child: Text("No missions completed yet.", style: TextStyle(fontSize: 18, color: Colors.grey)))
+          else
+            ..._completedMissions.map((m) {
+              DateTime date = DateTime.parse(m['completed_date']);
+              String formattedDate = DateFormat('MMM d, yyyy').format(date);
+              String formattedTime = DateFormat('h:mm a').format(date);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDateHeader(context, formattedDate),
+                  const SizedBox(height: 15),
+                  _buildTimelineItem(
+                    context,
+                    m['title'] ?? 'Mission',
+                    formattedTime,
+                    Icons.check_circle_outline,
+                    Colors.green,
+                  ),
+                ],
+              );
+            }).toList(),
 
           const SizedBox(height: 20),
 
@@ -89,15 +112,15 @@ class EcoTimeline extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.all(20),
+                Padding(
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "27 Days Streak",
-                        style: TextStyle(
+                        "$_currentStreak Days Streak",
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -106,7 +129,7 @@ class EcoTimeline extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Text(
+                      const Text(
                         "Unlocked!",
                         style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
@@ -126,9 +149,6 @@ class EcoTimeline extends StatelessWidget {
               ],
             ),
           ),
-
-          const SizedBox(height: 25),
-          _buildDateHeader(context, "Yesterday, Feb 19"),
           const SizedBox(height: 100),
         ],
       ),

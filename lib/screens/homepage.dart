@@ -5,6 +5,7 @@ import 'package:leafloop/screens/profile.dart';
 import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
+import 'dart:io';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -73,11 +74,14 @@ class _HomePageState extends State<HomePage> {
                 CircleAvatar(
                   radius: 35,
                   backgroundColor: Theme.of(context).primaryColor,
-                  child: const Icon(
+                  backgroundImage: _user?['profile_image_path'] != null 
+                            ? FileImage(File(_user!['profile_image_path'])) 
+                            : null,
+                  child: _user?['profile_image_path'] == null ? const Icon(
                     Icons.person,
                     color: Colors.white,
                     size: 40,
-                  ),
+                  ) : null,
                 ),
                 const SizedBox(width: 15),
                 Column(

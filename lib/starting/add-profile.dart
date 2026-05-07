@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // REQUIRED for Uint8List
 import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 // IMPORT the new energy level screen
 import 'package:leafloop/starting/energy_level.dart';
 
@@ -19,6 +21,7 @@ class AddProfilePage extends StatefulWidget {
 class _AddProfilePageState extends State<AddProfilePage> {
   late TextEditingController _usernameController;
   Uint8List? _webImage;
+  String? _savedImagePath;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -40,8 +43,15 @@ class _AddProfilePageState extends State<AddProfilePage> {
       );
       if (pickedFile != null) {
         var imageBytes = await pickedFile.readAsBytes();
+        
+        final directory = await getApplicationDocumentsDirectory();
+        final imagePath = '${directory.path}/profile_${DateTime.now().millisecondsSinceEpoch}.png';
+        final imageFile = File(imagePath);
+        await imageFile.writeAsBytes(imageBytes);
+
         setState(() {
           _webImage = imageBytes;
+          _savedImagePath = imagePath;
         });
       }
     } catch (e) {
@@ -95,6 +105,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
                           builder: (context) => EnergyLevelPage(
                             username: widget.username,
                             password: widget.password,
+                            profileImagePath: _savedImagePath,
                           ),
                         ),
                       );
