@@ -6,6 +6,7 @@ import 'package:leafloop/screens/admin/users_list.dart';
 import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
+import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -552,6 +553,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
   Widget _buildBottomNav(BuildContext context) {
+    bool isAdmin = LocalAuthService().isAdmin;
     return Stack(
       alignment: Alignment.center,
       clipBehavior: Clip.none,
@@ -587,10 +589,10 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
               const SizedBox(width: 50),
-              _buildNavItem(context, Icons.track_changes, "Missions", () {
+              _buildNavItem(context, isAdmin ? Icons.settings_suggest : Icons.track_changes, isAdmin ? "Manage" : "Missions", () {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => const MissionsScreen(),
+                    builder: (context) => isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                 );
               }, isActive: false),

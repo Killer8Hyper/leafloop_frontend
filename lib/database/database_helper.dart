@@ -479,7 +479,7 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getUserCompletedMissions(int userId) async {
     final db = await database;
     return await db.rawQuery('''
-      SELECT m.*, um.completed_date
+      SELECT m.*, um.completed_date, um.note, um.image_path
       FROM user_missions um
       JOIN missions m ON um.mission_id = m.id
       WHERE um.user_id = ?
@@ -487,7 +487,20 @@ class DatabaseHelper {
     ''', [userId]);
   }
 
-  // Get count of missions completed today
+  // Get count of missions completed today by difficulty
+  Future<int> getTodayDifficultyCount(int userId, int difficulty) async {
+    final db = await database;
+    String today = DateTime.now().toIso8601String().substring(0, 10);
+    var result = await db.rawQuery('''
+      SELECT COUNT(*) as count 
+      FROM user_missions um
+      JOIN missions m ON um.mission_id = m.id
+      WHERE um.user_id = ? AND DATE(um.completed_date) = ? AND m.difficulty = ?
+    ''', [userId, today, difficulty]);
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  // Get count of total missions completed today
   Future<int> getTodayCompletedCount(int userId) async {
     final db = await database;
     String today = DateTime.now().toIso8601String().substring(0, 10);

@@ -7,6 +7,7 @@ import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/services/local_auth_service.dart';
 import 'package:leafloop/screens/admin/users_list.dart';
 import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 
 class SeasonalMissionsScreen extends StatefulWidget {
   const SeasonalMissionsScreen({super.key});
@@ -92,31 +93,57 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             _buildSeasonHeader(),
-            const SizedBox(height: 20),
-            _buildProgressMission(
-              context,
-              "Seasonal Community Goal",
-              0.5,
-              "50%",
-              "2 more activities to complete",
-              subtitle: "Working together for a greener $_currentSeason",
-            ),
-            const SizedBox(height: 15),
-            _buildActionMission(
-              context,
-              _currentSeason == "Spring" ? "Plant a Sapling" : "Seasonal Cleanup",
-              "Earn bonus XP for $_currentSeason activities",
-            ),
-            const SizedBox(height: 15),
-            _buildProgressMission(
-              context,
-              "Zero Waste Challenge",
-              0.75,
-              "75%",
-              "1 more activity to complete",
-              subtitle: "Special $_currentSeason rewards included!",
-            ),
             const SizedBox(height: 25),
+            
+            // EASY SECTION
+            _buildDifficultyHeader("EASY CHALLENGES", Colors.green),
+            const SizedBox(height: 10),
+            _buildSeasonalActionCard(
+              "Refill & Refresh",
+              "Bring a reusable water bottle today.",
+              "Easy",
+              Icons.water_drop,
+            ),
+            const SizedBox(height: 15),
+            _buildSeasonalActionCard(
+              "Lights Out",
+              "Unplug unused appliances for 2 hours.",
+              "Easy",
+              Icons.power_off,
+            ),
+            
+            const SizedBox(height: 25),
+            
+            // MEDIUM SECTION
+            _buildDifficultyHeader("MEDIUM CHALLENGES", Colors.orange),
+            const SizedBox(height: 10),
+            _buildSeasonalActionCard(
+              _currentSeason.contains("Tag-init") ? "Natural Breeze" : "Seedling Care",
+              _currentSeason.contains("Tag-init") ? "Avoid AC for 4 hours." : "Water your indoor plants.",
+              "Medium",
+              _currentSeason.contains("Tag-init") ? Icons.air : Icons.local_florist,
+            ),
+            const SizedBox(height: 15),
+            _buildSeasonalActionCard(
+              "Waste Sort",
+              "Segregate your kitchen waste today.",
+              "Medium",
+              Icons.delete_sweep,
+            ),
+            
+            const SizedBox(height: 25),
+            
+            // HARD SECTION
+            _buildDifficultyHeader("HARD CHALLENGES", Colors.red),
+            const SizedBox(height: 10),
+            _buildSeasonalActionCard(
+              _currentSeason.contains("Tag-ulan") ? "Tree Planting" : "Park Cleanup",
+              _currentSeason.contains("Tag-ulan") ? "Join a local tree planting event." : "Lead a 1-hour park cleanup.",
+              "Hard",
+              Icons.landscape,
+            ),
+            
+            const SizedBox(height: 30),
             _buildStreakCard(context),
             const SizedBox(height: 100),
           ],
@@ -187,6 +214,89 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
           Text(
             remaining,
             style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDifficultyHeader(String title, Color color) {
+    return Row(
+      children: [
+        Container(width: 4, height: 20, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 10),
+        Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color, letterSpacing: 1.2)),
+      ],
+    );
+  }
+
+  Widget _buildSeasonalActionCard(String title, String subtitle, String difficulty, IconData icon) {
+    Color diffColor = difficulty == "Easy" ? Colors.green : (difficulty == "Medium" ? Colors.orange : Colors.red);
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: _seasonColor.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(icon, color: _seasonColor, size: 24),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: diffColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text(difficulty.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: diffColor)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text("Completed! You earned rewards for this $difficulty mission!")),
+                        ],
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: _seasonColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _seasonColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                child: const Text("I'm Done", style: TextStyle(color: Colors.white, fontSize: 14)),
+              ),
+            ],
           ),
         ],
       ),
@@ -339,7 +449,7 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
               _buildNavItem(
                 context,
                 Icons.home_outlined,
-                "Home",
+                LocalAuthService().isAdmin ? "Dashboard" : "Home",
                 () => Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const HomePage()),
@@ -357,12 +467,12 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
               const SizedBox(width: 50),
               _buildNavItem(
                 context,
-                Icons.track_changes,
-                "Missions",
+                LocalAuthService().isAdmin ? Icons.settings_suggest : Icons.track_changes,
+                LocalAuthService().isAdmin ? "Manage" : "Missions",
                 () => Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const MissionsScreen(),
+                    builder: (context) => LocalAuthService().isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                 ),
               ),

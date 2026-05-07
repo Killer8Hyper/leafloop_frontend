@@ -7,8 +7,11 @@ import 'package:leafloop/screens/growth_tree.dart';
 import 'package:leafloop/screens/seasonal_missions.dart';
 import 'package:leafloop/services/local_auth_service.dart';
 import 'package:leafloop/screens/admin/users_list.dart';
+import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 
 void showNavigationMenu(BuildContext context) {
+  bool isAdmin = LocalAuthService().isAdmin;
+  
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -35,20 +38,20 @@ void showNavigationMenu(BuildContext context) {
                   _buildMenuIcon(
                     context,
                     Icons.home_outlined,
-                    "Home",
+                    isAdmin ? "Dashboard" : "Home",
                     const HomePage(),
                   ),
                   _buildMenuIcon(
                     context,
-                    LocalAuthService().isAdmin ? Icons.people : Icons.watch_later_outlined,
-                    LocalAuthService().isAdmin ? "Users" : "Timeline",
-                    LocalAuthService().isAdmin ? const UsersListScreen() : const EcoTimeline(),
+                    isAdmin ? Icons.people : Icons.watch_later_outlined,
+                    isAdmin ? "Users" : "Timeline",
+                    isAdmin ? const UsersListScreen() : const EcoTimeline(),
                   ),
                   _buildMenuIcon(
                     context,
-                    Icons.track_changes,
-                    "Missions",
-                    const MissionsScreen(),
+                    isAdmin ? Icons.settings_suggest : Icons.track_changes,
+                    isAdmin ? "Manage" : "Missions",
+                    isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                   _buildMenuIcon(
                     context,
@@ -59,7 +62,7 @@ void showNavigationMenu(BuildContext context) {
                   _buildMenuIcon(
                     context,
                     Icons.filter_vintage_outlined,
-                    "Seasonal Mission",
+                    "Seasonal",
                     const SeasonalMissionsScreen(),
                   ),
                   _buildMenuIcon(

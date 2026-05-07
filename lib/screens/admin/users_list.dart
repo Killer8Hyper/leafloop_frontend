@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/screens/homepage.dart';
-import 'package:leafloop/screens/missions.dart';
 import 'package:leafloop/screens/profile.dart';
 import 'package:leafloop/widgets/nav_menu.dart';
+import 'package:leafloop/services/local_auth_service.dart';
+import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
@@ -149,8 +150,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
               }),
               _buildNavItem(Icons.people, "Users", () {}, isActive: true),
               const SizedBox(width: 50),
-              _buildNavItem(Icons.track_changes, "Missions", () {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MissionsScreen()));
+              _buildNavItem(Icons.settings_suggest, "Manage", () {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const EditMissionsScreen()));
               }),
               _buildNavItem(Icons.person_outline, "Profile", () {
                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));

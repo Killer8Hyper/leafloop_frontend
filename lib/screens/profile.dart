@@ -7,6 +7,8 @@ import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
 import 'package:leafloop/starting/landing_page.dart';
 import 'package:leafloop/screens/settings.dart';
+import 'package:leafloop/screens/admin/users_list.dart';
+import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 import 'dart:io';
 
 class ProfileScreen extends StatefulWidget {
@@ -263,6 +265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildBottomNav(BuildContext context) {
+    bool isAdmin = LocalAuthService().isAdmin;
     return Stack(
       alignment: Alignment.center,
       clipBehavior: Clip.none,
@@ -287,16 +290,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   MaterialPageRoute(builder: (context) => const HomePage()),
                 );
               }),
-              _buildNavItem(context, Icons.access_time, "Eco Timeline", () {
+              _buildNavItem(context, LocalAuthService().isAdmin ? Icons.people : Icons.access_time, LocalAuthService().isAdmin ? "Users" : "Eco Timeline", () {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const EcoTimeline()),
+                  MaterialPageRoute(builder: (context) => LocalAuthService().isAdmin ? const UsersListScreen() : const EcoTimeline()),
                 );
               }),
               const SizedBox(width: 50),
-              _buildNavItem(context, Icons.track_changes, "Missions", () {
+              _buildNavItem(context, LocalAuthService().isAdmin ? Icons.settings_suggest : Icons.track_changes, LocalAuthService().isAdmin ? "Manage" : "Missions", () {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => const MissionsScreen(),
+                    builder: (context) => LocalAuthService().isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                 );
               }),

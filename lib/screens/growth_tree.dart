@@ -7,6 +7,8 @@ import 'package:leafloop/screens/profile.dart';
 import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
+import 'package:leafloop/screens/admin/users_list.dart';
+import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 import 'package:leafloop/services/offline_ai_service.dart';
 
 class TreeGrowthScreen extends StatefulWidget {
@@ -217,16 +219,16 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
                   MaterialPageRoute(builder: (context) => const HomePage()),
                 );
               }),
-              _buildNavItem(Icons.access_time, "Eco Timeline", () {
+              _buildNavItem(LocalAuthService().isAdmin ? Icons.people : Icons.access_time, LocalAuthService().isAdmin ? "Users" : "Eco Timeline", () {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const EcoTimeline()),
+                  MaterialPageRoute(builder: (context) => LocalAuthService().isAdmin ? const UsersListScreen() : const EcoTimeline()),
                 );
               }),
               const SizedBox(width: 50), // Space for center logo
-              _buildNavItem(Icons.track_changes, "Missions", () {
+              _buildNavItem(LocalAuthService().isAdmin ? Icons.settings_suggest : Icons.track_changes, LocalAuthService().isAdmin ? "Manage" : "Missions", () {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => const MissionsScreen(),
+                    builder: (context) => LocalAuthService().isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                 );
               }, isActive: false),

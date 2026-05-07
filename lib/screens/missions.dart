@@ -8,6 +8,7 @@ import 'package:leafloop/services/local_auth_service.dart';
 import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:leafloop/screens/admin/users_list.dart';
 
 class MissionsScreen extends StatefulWidget {
   const MissionsScreen({super.key});
@@ -35,10 +36,16 @@ class _MissionsScreenState extends State<MissionsScreen> {
         var allMissions = await DatabaseHelper().getAllMissions();
         var completedMissions = await DatabaseHelper().getUserCompletedMissions(userId);
         
+        // Filter to only include missions completed TODAY
+        String today = DateTime.now().toIso8601String().substring(0, 10);
+        
         if (mounted) {
           setState(() {
             _missions = allMissions;
-            _completedMissionIds = completedMissions.map((m) => m['mission_id'] as int).toSet();
+            _completedMissionIds = completedMissions
+              .where((m) => m['completed_date'].toString().startsWith(today))
+              .map((m) => m['id'] as int)
+              .toSet();
             _isLoading = false;
           });
         }
@@ -51,6 +58,30 @@ class _MissionsScreenState extends State<MissionsScreen> {
   }
 
   Future<void> _showCompletionModal(Map<String, dynamic> mission) async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId == null) return;
+
+    // Check Daily Limits
+    int difficulty = mission['difficulty'] ?? 1;
+    int todayCount = await DatabaseHelper().getTodayDifficultyCount(userId, difficulty);
+    
+    int limit = difficulty <= 1 ? 5 : (difficulty == 2 ? 2 : 1);
+    String diffLabel = difficulty <= 1 ? "Easy" : (difficulty == 2 ? "Medium" : "Hard");
+
+    if (todayCount >= limit) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Daily limit reached for $diffLabel missions ($limit/$limit). Come back tomorrow!"),
+            backgroundColor: Colors.orange[800],
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+          ),
+        );
+      }
+      return;
+    }
+
     final TextEditingController noteController = TextEditingController();
     File? selectedImage;
     final ImagePicker picker = ImagePicker();
@@ -261,9 +292,9 @@ class _MissionsScreenState extends State<MissionsScreen> {
         automaticallyImplyLeading: false,
         backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
-        title: const Row(
+        title: Row(
           children: [
-            Text(
+            const Text(
               'Missions',
               style: TextStyle(
                 fontSize: 32,
@@ -271,8 +302,18 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 color: Colors.white,
               ),
             ),
-            Spacer(),
-            Icon(Icons.notifications_none, size: 35, color: Colors.white),
+            const Spacer(),
+            if (LocalAuthService().isAdmin)
+              IconButton(
+                icon: const Icon(Icons.access_time, size: 35, color: Colors.white),
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => const EcoTimeline()),
+                  );
+                },
+              )
+            else
+              const Icon(Icons.notifications_none, size: 35, color: Colors.white),
           ],
         ),
       ),
@@ -371,11 +412,19 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 else
                   RepaintBoundary(
                     child: Column(
-                      children: _missions.map((m) => _buildMissionCard(
-                        context,
-                        m,
-                        _completedMissionIds.contains(m['id']),
-                      )).toList(),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDifficultyHeader("EASY MISSIONS", Colors.green),
+                        ..._missions.where((m) => (m['difficulty'] ?? 1) <= 1).map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))),
+                        
+                        const SizedBox(height: 25),
+                        _buildDifficultyHeader("MEDIUM MISSIONS", Colors.orange),
+                        ..._missions.where((m) => (m['difficulty'] ?? 1) == 2).map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))),
+                        
+                        const SizedBox(height: 25),
+                        _buildDifficultyHeader("HARD MISSIONS", Colors.red),
+                        ..._missions.where((m) => (m['difficulty'] ?? 1) >= 3).map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))),
+                      ],
                     ),
                   ),
                 const SizedBox(height: 100), // Space for bottom nav
@@ -390,17 +439,14 @@ class _MissionsScreenState extends State<MissionsScreen> {
 
   Widget _buildMissionCard(BuildContext context, Map<String, dynamic> mission, bool isCompleted) {
     return GestureDetector(
-      onTap: () {
-        if (!isCompleted) {
-          _showCompletionModal(mission);
-        }
-      },
+      onTap: isCompleted ? null : () => _showCompletionModal(mission),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor, // Adapts to theme
+          color: isCompleted ? const Color(0xFFE8F5E9) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
+          border: isCompleted ? Border.all(color: Colors.green.withOpacity(0.3)) : null,
         ),
         child: Row(
           children: [
@@ -408,7 +454,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: isCompleted ? const Color(0xFFA8C69F) : const Color(0xFFE0D9D1),
+                color: isCompleted ? Colors.green : const Color(0xFFE0D9D1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -419,17 +465,54 @@ class _MissionsScreenState extends State<MissionsScreen> {
             ),
             const SizedBox(width: 15),
             Expanded(
-              child: Text(
-                mission['title'] ?? '',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context).primaryColor,
-                  height: 1.2,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mission['title'] ?? '',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isCompleted ? Colors.green[700] : Theme.of(context).primaryColor,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (isCompleted)
+                    const Text("FINISHED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green))
+                  else
+                    _buildDifficultyBadge(mission['difficulty'] ?? 1),
+                ],
               ),
             ),
+            if (isCompleted)
+              const Icon(Icons.verified, color: Colors.green, size: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDifficultyBadge(int difficulty) {
+    String label = difficulty <= 1 ? "EASY" : (difficulty == 2 ? "MEDIUM" : "HARD");
+    Color color = difficulty <= 1 ? Colors.green : (difficulty == 2 ? Colors.orange : Colors.red);
+    
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+      child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color)),
+    );
+  }
+
+  Widget _buildDifficultyHeader(String title, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(width: 4, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 10),
+          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color, letterSpacing: 1.2)),
+        ],
       ),
     );
   }
@@ -456,20 +539,26 @@ class _MissionsScreenState extends State<MissionsScreen> {
             children: [
               _buildNavItem(context, Icons.home_outlined, "Home", () {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  MaterialPageRoute(builder: (context) => HomePage()),
                 );
               }),
-              _buildNavItem(context, Icons.access_time, "Eco Timeline", () {
+              _buildNavItem(context, LocalAuthService().isAdmin ? Icons.people : Icons.access_time, LocalAuthService().isAdmin ? "Users" : "Eco Timeline", () {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const EcoTimeline()),
+                  MaterialPageRoute(builder: (context) => LocalAuthService().isAdmin ? UsersListScreen() : EcoTimeline()),
                 );
               }),
               const SizedBox(width: 50),
               _buildNavItem(
-                context,
-                Icons.track_changes,
-                "Missions",
-                () {},
+                context, 
+                LocalAuthService().isAdmin ? Icons.settings_suggest : Icons.track_changes, 
+                LocalAuthService().isAdmin ? "Manage" : "Missions", 
+                () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => LocalAuthService().isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
+                    ),
+                  );
+                }, 
                 isActive: true,
               ),
               _buildNavItem(context, Icons.person_outline, "Profile", () {

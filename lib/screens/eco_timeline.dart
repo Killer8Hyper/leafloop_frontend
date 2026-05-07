@@ -7,6 +7,8 @@ import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
 import 'package:intl/intl.dart';
+import 'package:leafloop/services/offline_ai_service.dart';
+import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 import 'dart:io';
 
 class EcoTimeline extends StatefulWidget {
@@ -19,6 +21,8 @@ class EcoTimeline extends StatefulWidget {
 class _EcoTimelineState extends State<EcoTimeline> {
   List<Map<String, dynamic>> _completedMissions = [];
   int _currentStreak = 0;
+  double _currentGrowth = 0.0;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -31,12 +35,21 @@ class _EcoTimelineState extends State<EcoTimeline> {
     if (userId != null) {
       var missions = await DatabaseHelper().getUserCompletedMissions(userId);
       var user = await DatabaseHelper().getUserById(userId);
+      var stats = await DatabaseHelper().getUserMissionStats(userId);
+      
+      // Get AI-predicted growth
+      double aiGrowth = await OfflineAIService().predictGrowth(stats);
+
       if (mounted) {
         setState(() {
           _completedMissions = missions;
           _currentStreak = user?['current_streak'] ?? 0;
+          _currentGrowth = aiGrowth;
+          _isLoading = false;
         });
       }
+    } else {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -64,9 +77,13 @@ class _EcoTimelineState extends State<EcoTimeline> {
           ],
         ),
       ),
-      body: ListView(
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
         children: [
+          _buildGrowthHeader(),
+          const SizedBox(height: 30),
           if (_completedMissions.isEmpty)
             const Center(child: Text("No missions completed yet.", style: TextStyle(fontSize: 18, color: Colors.grey)))
           else
@@ -83,7 +100,7 @@ class _EcoTimelineState extends State<EcoTimeline> {
                     context,
                     m['title'] ?? 'Mission',
                     formattedTime,
-                    Icons.check_circle_outline,
+                    m['icon'] ?? '🌱',
                     Colors.green,
                     note: m['note'],
                     imagePath: m['image_path'],
@@ -159,6 +176,57 @@ class _EcoTimelineState extends State<EcoTimeline> {
     );
   }
 
+  Widget _buildGrowthHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("CURRENT GROWTH", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  SizedBox(height: 5),
+                  Text("Tree Status", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+                child: const Icon(Icons.park, color: Colors.white, size: 30),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("${(_currentGrowth * 100).toInt()}% Grown", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              const Text("Target: 100%", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: _currentGrowth,
+              backgroundColor: Colors.white24,
+              color: const Color(0xFFD6A573),
+              minHeight: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDateHeader(BuildContext context, String text) {
     return Align(
       alignment: Alignment.centerLeft,
@@ -183,7 +251,7 @@ class _EcoTimelineState extends State<EcoTimeline> {
     BuildContext context,
     String title,
     String time,
-    IconData icon,
+    String iconString,
     Color iconColor, {
     String? note,
     String? imagePath,
@@ -200,9 +268,16 @@ class _EcoTimelineState extends State<EcoTimeline> {
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                backgroundColor: Color(0xFFA8C69F),
-                child: Icon(Icons.check, color: Colors.white),
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFA8C69F).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(iconString, style: const TextStyle(fontSize: 24)),
+                ),
               ),
               const SizedBox(width: 15),
               Expanded(
@@ -217,11 +292,11 @@ class _EcoTimelineState extends State<EcoTimeline> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(time, style: const TextStyle(color: Colors.orangeAccent)),
+                    Text(time, style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
                   ],
                 ),
               ),
-              Icon(icon, color: iconColor, size: 30),
+              const Icon(Icons.check_circle, color: Colors.green, size: 28),
             ],
           ),
           if (note != null && note.isNotEmpty) ...[
@@ -294,10 +369,10 @@ class _EcoTimelineState extends State<EcoTimeline> {
                 isActive: true,
               ),
               const SizedBox(width: 50),
-              _buildNavItem(context, Icons.track_changes, "Missions", () {
+              _buildNavItem(context, LocalAuthService().isAdmin ? Icons.settings_suggest : Icons.track_changes, LocalAuthService().isAdmin ? "Manage" : "Missions", () {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => const MissionsScreen(),
+                    builder: (context) => LocalAuthService().isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                 );
               }, isActive: false),
