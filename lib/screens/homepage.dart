@@ -124,7 +124,10 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.notifications_none, size: 35, color: Colors.white),
+            IconButton(
+              icon: const Icon(Icons.notifications_none, size: 35, color: Colors.white),
+              onPressed: _showNotificationsDialog,
+            ),
           ],
         ),
       ),
@@ -693,6 +696,70 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showNotificationsDialog() async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId == null) return;
+    
+    List<Map<String, dynamic>> notifications = [];
+    if (LocalAuthService().isAdmin) {
+      final db = await DatabaseHelper().database;
+      notifications = await db.rawQuery('''
+        SELECT u.username, m.title, um.completed_date 
+        FROM user_missions um 
+        JOIN users u ON um.user_id = u.id 
+        JOIN missions m ON um.mission_id = m.id 
+        ORDER BY um.completed_date DESC LIMIT 15
+      ''');
+    } else {
+      notifications = await DatabaseHelper().getUserCompletedMissions(userId);
+    }
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const Text("Notifications", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Divider(),
+              Expanded(
+                child: notifications.isEmpty 
+                  ? const Center(child: Text("No recent notifications.", style: TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                      itemCount: notifications.length,
+                      itemBuilder: (context, index) {
+                        var notif = notifications[index];
+                        DateTime date = DateTime.parse(notif['completed_date']);
+                        String formattedDate = DateFormat('MMM d, yyyy - h:mm a').format(date);
+                        
+                        String text = LocalAuthService().isAdmin 
+                          ? "${notif['username']} completed: ${notif['title']}"
+                          : "You completed: ${notif['title']}";
+
+                        return ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), shape: BoxShape.circle),
+                            child: const Icon(Icons.check_circle, color: Colors.green, size: 24),
+                          ),
+                          title: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                          subtitle: Text(formattedDate, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        );
+                      },
+                    ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

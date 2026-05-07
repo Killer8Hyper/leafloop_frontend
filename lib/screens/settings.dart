@@ -222,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _buildNavItem(
               Icons.access_time,
-              "Timeline",
+              "Eco Timeline",
               () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const EcoTimeline()),

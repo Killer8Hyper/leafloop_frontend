@@ -12,6 +12,14 @@ class EditMissionsScreen extends StatefulWidget {
 class _EditMissionsScreenState extends State<EditMissionsScreen> {
   List<Map<String, dynamic>> _missions = [];
   bool _isLoading = true;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -165,7 +173,40 @@ class _EditMissionsScreenState extends State<EditMissionsScreen> {
           : ListView(
               children: [
                 _buildLegend(),
-                ..._missions.map((m) => _buildMissionTile(m)).toList(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: "Search missions...",
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...() {
+                  var filteredMissions = _missions.where((m) {
+                    final title = (m['title'] ?? '').toString().toLowerCase();
+                    return title.contains(_searchQuery.toLowerCase());
+                  }).toList();
+                  
+                  if (filteredMissions.isEmpty) {
+                    return [const Padding(padding: EdgeInsets.only(top: 20), child: Center(child: Text("No missions found.", style: TextStyle(color: Colors.grey))))];
+                  }
+                  return filteredMissions.map((m) => _buildMissionTile(m)).toList();
+                }(),
               ],
             ),
       floatingActionButton: FloatingActionButton(

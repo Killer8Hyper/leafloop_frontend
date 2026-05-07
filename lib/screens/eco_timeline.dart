@@ -24,6 +24,14 @@ class _EcoTimelineState extends State<EcoTimeline> {
   int _currentStreak = 0;
   double _currentGrowth = 0.0;
   bool _isLoading = true;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -83,12 +91,40 @@ class _EcoTimelineState extends State<EcoTimeline> {
         : ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
         children: [
+          TextField(
+            controller: _searchController,
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+            decoration: InputDecoration(
+              hintText: "Search missions...",
+              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              filled: true,
+              fillColor: Theme.of(context).cardColor,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           _buildGrowthHeader(),
           const SizedBox(height: 30),
           if (_completedMissions.isEmpty)
             const Center(child: Text("No missions completed yet.", style: TextStyle(fontSize: 18, color: Colors.grey)))
-          else
-            ..._completedMissions.map((m) {
+          else ...() {
+            var filteredMissions = _completedMissions.where((m) {
+              final title = (m['title'] ?? '').toString().toLowerCase();
+              return title.contains(_searchQuery.toLowerCase());
+            }).toList();
+            
+            if (filteredMissions.isEmpty) {
+              return [const Center(child: Text("No missions found.", style: TextStyle(fontSize: 18, color: Colors.grey)))];
+            }
+            return filteredMissions.map((m) {
               DateTime date = DateTime.parse(m['completed_date']);
               String formattedDate = DateFormat('MMM d, yyyy').format(date);
               String formattedTime = DateFormat('h:mm a').format(date);
@@ -108,7 +144,8 @@ class _EcoTimelineState extends State<EcoTimeline> {
                   ),
                 ],
               );
-            }).toList(),
+            }).toList();
+          }(),
 
           const SizedBox(height: 20),
 
@@ -374,7 +411,7 @@ class _EcoTimelineState extends State<EcoTimeline> {
               _buildNavItem(
                 context,
                 Icons.access_time,
-                "Timeline",
+                "Eco Timeline",
                 () {},
                 isActive: true,
               ),

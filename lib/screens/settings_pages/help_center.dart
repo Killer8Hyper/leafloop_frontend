@@ -125,7 +125,7 @@ class HelpCenterPage extends StatelessWidget {
               _buildNavItem(
                 context,
                 Icons.access_time,
-                "Timeline",
+                "Eco Timeline",
                 const EcoTimeline(),
               ),
               const SizedBox(width: 50),

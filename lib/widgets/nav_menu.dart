@@ -44,7 +44,7 @@ void showNavigationMenu(BuildContext context) {
                   _buildMenuIcon(
                     context,
                     isAdmin ? Icons.people : Icons.watch_later_outlined,
-                    isAdmin ? "Users" : "Timeline",
+                    isAdmin ? "Users" : "Eco Timeline",
                     isAdmin ? const UsersListScreen() : const EcoTimeline(),
                   ),
                   _buildMenuIcon(

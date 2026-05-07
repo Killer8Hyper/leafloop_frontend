@@ -38,7 +38,7 @@ void showNavigationMenu(BuildContext context) {
                   _buildMenuIcon(
                     context,
                     Icons.access_time,
-                    "Timeline",
+                    "Eco Timeline",
                     const EcoTimeline(),
                   ),
                   _buildMenuIcon(

@@ -272,7 +272,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(context, Icons.home_outlined, "Home", const HomePage(), isHome: true),
-              _buildNavItem(context, Icons.access_time, "Timeline", const EcoTimeline()),
+              _buildNavItem(context, Icons.access_time, "Eco Timeline", const EcoTimeline()),
               const SizedBox(width: 50),
               _buildNavItem(context, Icons.track_changes, "Missions", const MissionsScreen()),
               _buildNavItem(context, Icons.person_outline, "Profile", const ProfileScreen()),

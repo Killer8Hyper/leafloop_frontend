@@ -9,6 +9,7 @@ import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:leafloop/screens/admin/users_list.dart';
+import 'package:intl/intl.dart';
 
 class MissionsScreen extends StatefulWidget {
   const MissionsScreen({super.key});
@@ -22,6 +23,14 @@ class _MissionsScreenState extends State<MissionsScreen> {
   Set<int> _completedMissionIds = {};
   bool _isProcessing = false;
   bool _isLoading = true;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -313,7 +322,10 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 },
               )
             else
-              const Icon(Icons.notifications_none, size: 35, color: Colors.white),
+              IconButton(
+                icon: const Icon(Icons.notifications_none, size: 35, color: Colors.white),
+                onPressed: _showNotificationsDialog,
+              ),
           ],
         ),
       ),
@@ -390,7 +402,30 @@ class _MissionsScreenState extends State<MissionsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 25),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: "Search missions...",
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                filled: true,
+                fillColor: Theme.of(context).cardColor,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
           // Missions List
           Expanded(
             child: ListView(
@@ -413,18 +448,37 @@ class _MissionsScreenState extends State<MissionsScreen> {
                   RepaintBoundary(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildDifficultyHeader("EASY MISSIONS", Colors.green),
-                        ..._missions.where((m) => (m['difficulty'] ?? 1) <= 1).map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))),
-                        
-                        const SizedBox(height: 25),
-                        _buildDifficultyHeader("MEDIUM MISSIONS", Colors.orange),
-                        ..._missions.where((m) => (m['difficulty'] ?? 1) == 2).map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))),
-                        
-                        const SizedBox(height: 25),
-                        _buildDifficultyHeader("HARD MISSIONS", Colors.red),
-                        ..._missions.where((m) => (m['difficulty'] ?? 1) >= 3).map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))),
-                      ],
+                      children: () {
+                        var filteredMissions = _missions.where((m) {
+                          final title = (m['title'] ?? '').toString().toLowerCase();
+                          return title.contains(_searchQuery.toLowerCase());
+                        }).toList();
+
+                        if (filteredMissions.isEmpty && _searchQuery.isNotEmpty) {
+                          return [const Padding(padding: EdgeInsets.only(top: 20), child: Center(child: Text("No missions found.", style: TextStyle(color: Colors.grey))))];
+                        }
+
+                        var easy = filteredMissions.where((m) => (m['difficulty'] ?? 1) <= 1).toList();
+                        var medium = filteredMissions.where((m) => (m['difficulty'] ?? 1) == 2).toList();
+                        var hard = filteredMissions.where((m) => (m['difficulty'] ?? 1) >= 3).toList();
+
+                        List<Widget> widgets = [];
+                        if (easy.isNotEmpty) {
+                          widgets.add(_buildDifficultyHeader("EASY MISSIONS", Colors.green));
+                          widgets.addAll(easy.map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))));
+                          widgets.add(const SizedBox(height: 25));
+                        }
+                        if (medium.isNotEmpty) {
+                          widgets.add(_buildDifficultyHeader("MEDIUM MISSIONS", Colors.orange));
+                          widgets.addAll(medium.map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))));
+                          widgets.add(const SizedBox(height: 25));
+                        }
+                        if (hard.isNotEmpty) {
+                          widgets.add(_buildDifficultyHeader("HARD MISSIONS", Colors.red));
+                          widgets.addAll(hard.map((m) => _buildMissionCard(context, m, _completedMissionIds.contains(m['id']))));
+                        }
+                        return widgets;
+                      }(),
                     ),
                   ),
                 const SizedBox(height: 100), // Space for bottom nav
@@ -640,6 +694,70 @@ class _MissionsScreenState extends State<MissionsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showNotificationsDialog() async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId == null) return;
+    
+    List<Map<String, dynamic>> notifications = [];
+    if (LocalAuthService().isAdmin) {
+      final db = await DatabaseHelper().database;
+      notifications = await db.rawQuery('''
+        SELECT u.username, m.title, um.completed_date 
+        FROM user_missions um 
+        JOIN users u ON um.user_id = u.id 
+        JOIN missions m ON um.mission_id = m.id 
+        ORDER BY um.completed_date DESC LIMIT 15
+      ''');
+    } else {
+      notifications = await DatabaseHelper().getUserCompletedMissions(userId);
+    }
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const Text("Notifications", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Divider(),
+              Expanded(
+                child: notifications.isEmpty 
+                  ? const Center(child: Text("No recent notifications.", style: TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                      itemCount: notifications.length,
+                      itemBuilder: (context, index) {
+                        var notif = notifications[index];
+                        DateTime date = DateTime.parse(notif['completed_date']);
+                        String formattedDate = DateFormat('MMM d, yyyy - h:mm a').format(date);
+                        
+                        String text = LocalAuthService().isAdmin 
+                          ? "${notif['username']} completed: ${notif['title']}"
+                          : "You completed: ${notif['title']}";
+
+                        return ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), shape: BoxShape.circle),
+                            child: const Icon(Icons.check_circle, color: Colors.green, size: 24),
+                          ),
+                          title: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                          subtitle: Text(formattedDate, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        );
+                      },
+                    ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

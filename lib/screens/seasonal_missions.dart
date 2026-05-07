@@ -458,7 +458,7 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
               _buildNavItem(
                 context,
                 LocalAuthService().isAdmin ? Icons.people : Icons.access_time,
-                LocalAuthService().isAdmin ? "Users" : "Timeline",
+                LocalAuthService().isAdmin ? "Users" : "Eco Timeline",
                 () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => LocalAuthService().isAdmin ? const UsersListScreen() : const EcoTimeline()),
                 ),
