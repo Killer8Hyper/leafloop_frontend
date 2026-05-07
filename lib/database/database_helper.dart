@@ -311,6 +311,17 @@ class DatabaseHelper {
     ''', [userId]);
   }
 
+  // Get count of missions completed today
+  Future<int> getTodayCompletedCount(int userId) async {
+    final db = await database;
+    String today = DateTime.now().toIso8601String().substring(0, 10);
+    var result = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM user_missions 
+      WHERE user_id = ? AND DATE(completed_date) = ?
+    ''', [userId, today]);
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   // ==================== AI STATS METHODS ====================
 
   // Get user stats for AI

@@ -17,6 +17,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? _user;
   List<Map<String, dynamic>> _missions = [];
+  int _todayCount = 0;
 
   @override
   void initState() {
@@ -29,10 +30,12 @@ class _HomePageState extends State<HomePage> {
     if (userId != null) {
       var user = await DatabaseHelper().getUserById(userId);
       var missions = await DatabaseHelper().getMissionsByDifficulty(user?['energy_level'] ?? 2, limit: 3);
+      var todayCount = await DatabaseHelper().getTodayCompletedCount(userId);
       if (mounted) {
         setState(() {
           _user = user;
           _missions = missions;
+          _todayCount = todayCount;
         });
       }
     }
@@ -160,7 +163,12 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     children: [
                       Text(
-                        "TUESDAY",
+                        DateTime.now().toLocal().weekday == 1 ? "MONDAY" :
+                        DateTime.now().toLocal().weekday == 2 ? "TUESDAY" :
+                        DateTime.now().toLocal().weekday == 3 ? "WEDNESDAY" :
+                        DateTime.now().toLocal().weekday == 4 ? "THURSDAY" :
+                        DateTime.now().toLocal().weekday == 5 ? "FRIDAY" :
+                        DateTime.now().toLocal().weekday == 6 ? "SATURDAY" : "SUNDAY",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -168,7 +176,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       Text(
-                        "20",
+                        "${DateTime.now().day}",
                         style: TextStyle(
                           fontSize: 80,
                           fontWeight: FontWeight.w300,
@@ -209,7 +217,9 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      "Complete 2 missions to grow your plant today",
+                      _todayCount >= 2 
+                        ? "Goal reached! Your tree is growing beautifully." 
+                        : "Complete ${2 - _todayCount} more missions to grow your plant today",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
