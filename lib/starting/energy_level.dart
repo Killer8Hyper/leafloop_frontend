@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'package:leafloop/screens/homepage.dart'; // Ensure this path is correct
+import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/services/local_auth_service.dart';
 
 class EnergyLevelPage extends StatefulWidget {
-  const EnergyLevelPage({super.key});
+  final String username;
+  final String password;
+
+  const EnergyLevelPage({super.key, required this.username, required this.password});
 
   @override
   State<EnergyLevelPage> createState() => _EnergyLevelPageState();
@@ -240,9 +245,28 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Triggers the popup
-                    _showEnergySetPopup();
+                  onPressed: () async {
+                    int energy = _currentEnergyValue.toInt();
+                    int energyLevel = 2;
+                    if (energy < 33) energyLevel = 1;
+                    else if (energy > 66) energyLevel = 3;
+
+                    try {
+                      int userId = await DatabaseHelper().createUser(
+                          widget.username,
+                          '${widget.username}@leafloop.com', // Dummy email for now
+                          widget.password,
+                          energyLevel
+                      );
+                      LocalAuthService().login(userId, widget.username);
+                      
+                      // Triggers the popup
+                      _showEnergySetPopup();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Username already exists or error occurred')),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,

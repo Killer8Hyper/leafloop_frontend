@@ -8,8 +8,9 @@ import 'package:leafloop/starting/energy_level.dart';
 
 class AddProfilePage extends StatefulWidget {
   final String username;
+  final String password;
 
-  const AddProfilePage({super.key, required this.username});
+  const AddProfilePage({super.key, required this.username, required this.password});
 
   @override
   State<AddProfilePage> createState() => _AddProfilePageState();
@@ -91,7 +92,10 @@ class _AddProfilePageState extends State<AddProfilePage> {
                       // Navigate to the next page, removing previous stack
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
-                          builder: (context) => const EnergyLevelPage(),
+                          builder: (context) => EnergyLevelPage(
+                            username: widget.username,
+                            password: widget.password,
+                          ),
                         ),
                       );
                     },

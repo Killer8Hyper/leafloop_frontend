@@ -95,8 +95,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => AddProfilePage(
-                          // Pass the username to pre-fill the next screen
+                          // Pass the username and password to the next screen
                           username: _usernameController.text,
+                          password: _passwordController.text,
                         ),
                       ),
                     );

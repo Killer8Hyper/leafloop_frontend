@@ -2,11 +2,54 @@ import 'package:flutter/material.dart';
 import 'package:leafloop/screens/homepage.dart';
 import 'package:leafloop/screens/eco_timeline.dart';
 import 'package:leafloop/screens/profile.dart';
-// Import the navigation menu helper
 import 'package:leafloop/widgets/nav_menu.dart';
+import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/services/local_auth_service.dart';
 
-class MissionsScreen extends StatelessWidget {
+class MissionsScreen extends StatefulWidget {
   const MissionsScreen({super.key});
+
+  @override
+  State<MissionsScreen> createState() => _MissionsScreenState();
+}
+
+class _MissionsScreenState extends State<MissionsScreen> {
+  List<Map<String, dynamic>> _missions = [];
+  Set<int> _completedMissionIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMissions();
+  }
+
+  Future<void> _loadMissions() async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId != null) {
+      var allMissions = await DatabaseHelper().getAllMissions();
+      var completedMissions = await DatabaseHelper().getUserCompletedMissions(userId);
+      
+      if (mounted) {
+        setState(() {
+          _missions = allMissions;
+          _completedMissionIds = completedMissions.map((m) => m['mission_id'] as int).toSet();
+        });
+      }
+    }
+  }
+
+  Future<void> _completeMission(int missionId) async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId != null && !_completedMissionIds.contains(missionId)) {
+      await DatabaseHelper().completeMission(userId, missionId);
+      setState(() {
+        _completedMissionIds.add(missionId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mission completed! Streak updated.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,30 +131,14 @@ class MissionsScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 25),
               children: [
-                _buildMissionCard(
-                  context,
-                  'Say "no straw please" when ordering drinks.',
-                ),
-                _buildMissionCard(
-                  context,
-                  'Bring an eco bag when buying snacks or groceries.',
-                ),
-                _buildMissionCard(
-                  context,
-                  'Unplug chargers and appliances when not in use.',
-                ),
-                _buildMissionCard(
-                  context,
-                  'Take the stairs instead of elevator (1-3 floors only)',
-                ),
-                _buildMissionCard(
-                  context,
-                  'Dispose a plastic bottle in a recycling bin.',
-                ),
-                _buildMissionCard(
-                  context,
-                  'Pick up one piece of litter you see on campus.',
-                ),
+                if (_missions.isEmpty)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  ..._missions.map((m) => _buildMissionCard(
+                    context,
+                    m,
+                    _completedMissionIds.contains(m['id']),
+                  )).toList(),
                 const SizedBox(height: 100), // Space for bottom nav
               ],
             ),
@@ -122,37 +149,48 @@ class MissionsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMissionCard(BuildContext context, String title) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor, // Adapts to theme
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0D9D1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                // Automatically switches between primary green or a lighter green/white
-                color: Theme.of(context).primaryColor,
-                height: 1.2,
+  Widget _buildMissionCard(BuildContext context, Map<String, dynamic> mission, bool isCompleted) {
+    return GestureDetector(
+      onTap: () {
+        if (!isCompleted) {
+          _completeMission(mission['id']);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor, // Adapts to theme
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: isCompleted ? const Color(0xFFA8C69F) : const Color(0xFFE0D9D1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: isCompleted 
+                  ? const Icon(Icons.check, color: Colors.white)
+                  : Text(mission['icon'] ?? '', style: const TextStyle(fontSize: 24)),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 15),
+            Expanded(
+              child: Text(
+                mission['title'] ?? '',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).primaryColor,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

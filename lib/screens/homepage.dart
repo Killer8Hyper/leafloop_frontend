@@ -3,9 +3,39 @@ import 'package:leafloop/screens/eco_timeline.dart';
 import 'package:leafloop/screens/missions.dart';
 import 'package:leafloop/screens/profile.dart';
 import 'package:leafloop/widgets/nav_menu.dart';
+import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/services/local_auth_service.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  Map<String, dynamic>? _user;
+  List<Map<String, dynamic>> _missions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    int? userId = LocalAuthService().currentUserId;
+    if (userId != null) {
+      var user = await DatabaseHelper().getUserById(userId);
+      var missions = await DatabaseHelper().getMissionsByDifficulty(user?['energy_level'] ?? 2, limit: 3);
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _missions = missions;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +88,7 @@ class HomePage extends StatelessWidget {
                       style: TextStyle(fontSize: 18, color: Colors.grey),
                     ),
                     Text(
-                      "Username123",
+                      _user != null ? _user!['username'] : "Loading...",
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -89,7 +119,7 @@ class HomePage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "27",
+                              "${_user?['current_streak'] ?? 0}",
                               style: TextStyle(
                                 fontSize: 48,
                                 fontWeight: FontWeight.bold,
@@ -196,9 +226,10 @@ class HomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 15),
-            _buildMissionItem(context, "Recycle a plastic bottle", true),
-            _buildMissionItem(context, "Segregate Trash", false),
-            _buildMissionItem(context, "Use a reusable water bottle", false),
+            if (_missions.isEmpty)
+              const CircularProgressIndicator()
+            else
+              ..._missions.map((m) => _buildMissionItem(context, m['title'] ?? 'Mission', false)).toList(),
             const SizedBox(height: 100),
           ],
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:leafloop/starting/sign-up.dart';
 import 'package:leafloop/screens/homepage.dart'; // Import your new homepage
+import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/services/local_auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -65,11 +67,24 @@ class _LoginPageState extends State<LoginPage> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Navigate and replace current route so user can't go back to login
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (context) => const HomePage()),
-                    );
+                  onPressed: () async {
+                    String username = _usernameController.text.trim();
+                    String password = _passwordController.text;
+                    
+                    if (username.isEmpty || password.isEmpty) return;
+                    
+                    var user = await DatabaseHelper().getUserByUsername(username);
+                    if (user != null && user['password_hash'] == password) {
+                      LocalAuthService().login(user['id'], user['username']);
+                      // Navigate and replace current route so user can't go back to login
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (context) => const HomePage()),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Invalid username or password')),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B5236),
