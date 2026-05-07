@@ -18,6 +18,16 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  
+  bool get _isPasswordValid {
+    final passwordRegex = RegExp(r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$');
+    return passwordRegex.hasMatch(_passwordController.text);
+  }
+
+  bool get _isPasswordMatch {
+    return _passwordController.text.isNotEmpty && 
+           _passwordController.text == _confirmPasswordController.text;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,14 +78,32 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _passwordController,
-                hintText: "min. 8 chars, 1 capital, 1 number, 1 symbol",
+                hintText: "enter your password",
                 isPassword: true,
                 obscureText: _obscurePassword,
+                onChanged: (val) => setState(() {}),
                 onToggleVisibility: () {
                   setState(() {
                     _obscurePassword = !_obscurePassword;
                   });
                 },
+              ),
+              const SizedBox(height: 5),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Text(
+                    "Must be 8+ chars, 1 capital, 1 number, 1 symbol",
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.03,
+                      color: _passwordController.text.isEmpty 
+                        ? Colors.grey[600] 
+                        : (_isPasswordValid ? Colors.green : Colors.red),
+                      fontWeight: _isPasswordValid ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 20),
@@ -84,14 +112,32 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _confirmPasswordController,
-                hintText: "re-enter your password",
+                hintText: "re-enter password",
                 isPassword: true,
                 obscureText: _obscureConfirm,
+                onChanged: (val) => setState(() {}),
                 onToggleVisibility: () {
                   setState(() {
                     _obscureConfirm = !_obscureConfirm;
                   });
                 },
+              ),
+              const SizedBox(height: 5),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Text(
+                    _confirmPasswordController.text.isEmpty 
+                      ? "" 
+                      : (_isPasswordMatch ? "Passwords match!" : "Passwords do not match"),
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.03,
+                      color: _isPasswordMatch ? Colors.green : Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 50),
@@ -221,6 +267,7 @@ class _SignUpPageState extends State<SignUpPage> {
     bool obscureText = false,
     VoidCallback? onToggleVisibility,
     TextInputType keyboardType = TextInputType.text,
+    ValueChanged<String>? onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -238,6 +285,7 @@ class _SignUpPageState extends State<SignUpPage> {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        onChanged: onChanged,
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
