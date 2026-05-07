@@ -241,7 +241,7 @@ class _HomePageState extends State<HomePage> {
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => const TreeGrowthScreen()),
-                  );
+                  ).then((_) => _loadData());
                 },
                 child: Container(
                   height: 160,
@@ -605,7 +605,7 @@ class _HomePageState extends State<HomePage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(context, Icons.home, "Home", () {}, isActive: true),
+              _buildNavItem(context, Icons.home, "Home", () { _loadData(); }, isActive: true),
               _buildNavItem(
                 context, 
                 LocalAuthService().isAdmin ? Icons.people : Icons.access_time, 
@@ -617,7 +617,7 @@ class _HomePageState extends State<HomePage> {
                         ? const UsersListScreen() 
                         : const EcoTimeline(),
                     ),
-                  );
+                  ).then((_) => _loadData());
                 },
               ),
               const SizedBox(width: 50),
@@ -626,14 +626,14 @@ class _HomePageState extends State<HomePage> {
                   MaterialPageRoute(
                     builder: (context) => isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
-                );
+                ).then((_) => _loadData());
               }, isActive: false),
               _buildNavItem(context, Icons.person_outline, "Profile", () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const ProfileScreen(),
                   ),
-                );
+                ).then((_) => _loadData());
               }),
             ],
           ),
