@@ -28,7 +28,7 @@ class AboutLeafLoopPage extends StatelessWidget {
             Image.asset('assets/images/logo/LeafLoop2.png', height: 100),
             const SizedBox(height: 20),
             const Text(
-              "LeafLoop v1.6.7",
+              "LeafLoop v1.6.8",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
             const SizedBox(height: 20),

@@ -104,8 +104,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: ElevatedButton(
-              onPressed: () {
-                // LOGOUT LOGIC
+              onPressed: () async {
+                // LOGOUT LOGIC — clear session before navigating
+                await LocalAuthService().logout();
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
@@ -133,7 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
           Center(
             child: Text(
-              "Version 1.6.7",
+              "Version 1.6.8",
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ),

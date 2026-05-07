@@ -23,6 +23,16 @@ class DatabaseHelper {
       version: _databaseVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onOpen: (db) async {
+        // Ensure login_activity table exists (may be missing from older _onCreate)
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS login_activity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            login_date DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        ''');
+      },
     );
   }
 
@@ -153,6 +163,15 @@ class DatabaseHelper {
         image_path TEXT,
         FOREIGN KEY (user_id) REFERENCES users (id),
         FOREIGN KEY (mission_id) REFERENCES missions (id)
+      )
+    ''');
+
+    // Login activity tracking table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS login_activity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        login_date DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 

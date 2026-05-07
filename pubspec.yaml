@@ -1,7 +1,7 @@
 name: leafloop
 description: "A new Flutter project for Week 10."
 publish_to: 'none'
-version: 1.6.7+1
+version: 1.6.8+1
 
 environment:
   sdk: ^3.11.0
@@ -31,7 +31,7 @@ flutter_launcher_icons:
   ios: false
   image_path: "assets/images/logo/LeafLoop2.png"
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/logo/LeafLoop2.png"
+  adaptive_icon_foreground: "assets/images/logo/LeafLoop2_foreground.png"
 
 flutter:
   uses-material-design: true
