@@ -18,7 +18,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'leafloop.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -30,6 +30,11 @@ class DatabaseHelper {
       await db.execute('DROP TABLE IF EXISTS missions');
       await db.execute('DROP TABLE IF EXISTS users');
       await _onCreate(db, newVersion);
+    } else if (oldVersion < 3) {
+      // Version 3: Add first_name, middle_name, last_name
+      await db.execute('ALTER TABLE users ADD COLUMN first_name TEXT');
+      await db.execute('ALTER TABLE users ADD COLUMN middle_name TEXT');
+      await db.execute('ALTER TABLE users ADD COLUMN last_name TEXT');
     }
   }
 
@@ -42,6 +47,10 @@ class DatabaseHelper {
         email TEXT UNIQUE,
         password_hash TEXT,
         profile_image_path TEXT,
+        first_name TEXT,
+        middle_name TEXT,
+        last_name TEXT,
+        date_of_birth TEXT,
         energy_level INTEGER DEFAULT 2,
         current_streak INTEGER DEFAULT 0,
         longest_streak INTEGER DEFAULT 0,
@@ -128,8 +137,8 @@ class DatabaseHelper {
 
   // ==================== USER METHODS ====================
 
-  // Create user
-  Future<int> createUser(String username, String email, String passwordHash, int energyLevel, {String? profileImagePath}) async {
+  Future<int> createUser(String username, String email, String passwordHash, int energyLevel, 
+      {String? profileImagePath, String? firstName, String? middleName, String? lastName, String? dob}) async {
     final db = await database;
     return await db.insert('users', {
       'username': username,
@@ -137,6 +146,10 @@ class DatabaseHelper {
       'password_hash': passwordHash,
       'profile_image_path': profileImagePath,
       'energy_level': energyLevel,
+      'first_name': firstName,
+      'middle_name': middleName,
+      'last_name': lastName,
+      'date_of_birth': dob,
       'created_at': DateTime.now().toIso8601String(),
     });
   }
@@ -194,6 +207,35 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [userId],
     );
+  }
+
+  // Update user profile
+  Future<void> updateUserProfile({
+    required int userId,
+    String? username,
+    String? firstName,
+    String? middleName,
+    String? lastName,
+    String? dob,
+    String? profileImagePath,
+  }) async {
+    final db = await database;
+    Map<String, dynamic> values = {};
+    if (username != null) values['username'] = username;
+    if (firstName != null) values['first_name'] = firstName;
+    if (middleName != null) values['middle_name'] = middleName;
+    if (lastName != null) values['last_name'] = lastName;
+    if (dob != null) values['date_of_birth'] = dob;
+    if (profileImagePath != null) values['profile_image_path'] = profileImagePath;
+
+    if (values.isNotEmpty) {
+      await db.update(
+        'users',
+        values,
+        where: 'id = ?',
+        whereArgs: [userId],
+      );
+    }
   }
 
   // Update user streak after completing mission

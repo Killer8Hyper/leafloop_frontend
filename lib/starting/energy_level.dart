@@ -10,8 +10,22 @@ class EnergyLevelPage extends StatefulWidget {
   final String email;
   final String password;
   final String? profileImagePath;
+  final String firstName;
+  final String? middleName;
+  final String lastName;
+  final String dob;
 
-  const EnergyLevelPage({super.key, required this.username, required this.email, required this.password, this.profileImagePath});
+  const EnergyLevelPage({
+    super.key, 
+    required this.username, 
+    required this.email, 
+    required this.password, 
+    this.profileImagePath,
+    required this.firstName,
+    this.middleName,
+    required this.lastName,
+    required this.dob,
+  });
 
   @override
   State<EnergyLevelPage> createState() => _EnergyLevelPageState();
@@ -310,7 +324,11 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                           widget.email,
                           widget.password,
                           energyLevel,
-                          profileImagePath: widget.profileImagePath
+                          profileImagePath: widget.profileImagePath,
+                          firstName: widget.firstName,
+                          middleName: widget.middleName,
+                          lastName: widget.lastName,
+                          dob: widget.dob,
                       );
                       await LocalAuthService().login(userId, widget.username);
                       

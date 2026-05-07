@@ -65,19 +65,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const Spacer(),
             IconButton(
-              icon: Icon(
-                Icons.logout,
+              icon: const Icon(
+                Icons.settings,
                 size: 35,
-                color: Theme.of(context).scaffoldBackgroundColor,
+                color: Colors.white,
               ),
-              onPressed: () async {
-                await LocalAuthService().logout();
-                if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const LandingPage()),
-                    (route) => false,
-                  );
-                }
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Theme.of(context).cardColor,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  builder: (context) => Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "Settings",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Divider(),
+                        ListTile(
+                          leading: const Icon(Icons.person_outline),
+                          title: const Text("Edit Profile"),
+                          onTap: () => Navigator.pop(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.notifications_none),
+                          title: const Text("Notifications"),
+                          onTap: () => Navigator.pop(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.logout, color: Colors.red),
+                          title: const Text(
+                            "Logout",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await LocalAuthService().logout();
+                            if (mounted) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (context) => const LandingPage()),
+                                (route) => false,
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
           ],

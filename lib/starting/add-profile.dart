@@ -12,8 +12,21 @@ class AddProfilePage extends StatefulWidget {
   final String username;
   final String email;
   final String password;
+  final String firstName;
+  final String? middleName;
+  final String lastName;
+  final String dob;
 
-  const AddProfilePage({super.key, required this.username, required this.email, required this.password});
+  const AddProfilePage({
+    super.key, 
+    required this.username, 
+    required this.email, 
+    required this.password,
+    required this.firstName,
+    this.middleName,
+    required this.lastName,
+    required this.dob,
+  });
 
   @override
   State<AddProfilePage> createState() => _AddProfilePageState();
@@ -115,6 +128,10 @@ class _AddProfilePageState extends State<AddProfilePage> {
                             email: widget.email,
                             password: widget.password,
                             profileImagePath: _savedImagePath,
+                            firstName: widget.firstName,
+                            middleName: widget.middleName,
+                            lastName: widget.lastName,
+                            dob: widget.dob,
                           ),
                         ),
                       );

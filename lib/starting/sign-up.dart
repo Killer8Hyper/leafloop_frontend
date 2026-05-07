@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:leafloop/starting/log-in.dart';
 // IMPORT the new page
 import 'package:leafloop/starting/add-profile.dart';
@@ -18,10 +19,20 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _middleNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
   
   bool get _isPasswordValid {
     final passwordRegex = RegExp(r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$');
     return passwordRegex.hasMatch(_passwordController.text);
+  }
+
+  bool get _isUsernameValid {
+    // No spaces, minimum 3 characters
+    final usernameRegex = RegExp(r'^\S{3,}$');
+    return usernameRegex.hasMatch(_usernameController.text);
   }
 
   bool get _isPasswordMatch {
@@ -57,10 +68,75 @@ class _SignUpPageState extends State<SignUpPage> {
                 ),
               ),
               const SizedBox(height: 40),
+              
+              _buildLabel("First Name:", screenWidth),
+              const SizedBox(height: 8),
+              _buildTextField(controller: _firstNameController, hintText: "enter your first name"),
+
+              const SizedBox(height: 20),
+
+              _buildLabel("Middle Name (Optional):", screenWidth),
+              const SizedBox(height: 8),
+              _buildTextField(controller: _middleNameController, hintText: "enter your middle name"),
+
+              const SizedBox(height: 20),
+
+              _buildLabel("Last Name:", screenWidth),
+              const SizedBox(height: 8),
+              _buildTextField(controller: _lastNameController, hintText: "enter your last name"),
+
+              const SizedBox(height: 20),
+
+              _buildLabel("Date of Birth (MM/DD/YYYY):", screenWidth),
+              const SizedBox(height: 8),
+              _buildTextField(
+                controller: _dobController, 
+                hintText: "MM/DD/YYYY",
+                keyboardType: TextInputType.number,
+                inputFormatters: [DateInputFormatter()],
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_today, color: Color(0xFF3B5236)),
+                  onPressed: () async {
+                    DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime(2000),
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _dobController.text = "${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}";
+                      });
+                    }
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 20),
 
               _buildLabel("Username:", screenWidth),
               const SizedBox(height: 8),
-              _buildTextField(controller: _usernameController, hintText: "enter username (ex. JuanDelaCruz)"),
+              _buildTextField(
+                controller: _usernameController, 
+                hintText: "enter username (ex. JuanDelaCruz)",
+                onChanged: (val) => setState(() {}),
+              ),
+              const SizedBox(height: 5),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Text(
+                    "Minimum 3 characters, no spaces allowed",
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.03,
+                      color: _usernameController.text.isEmpty 
+                        ? Colors.grey[600] 
+                        : (_isUsernameValid ? Colors.green : Colors.red),
+                    ),
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 20),
 
@@ -148,15 +224,63 @@ class _SignUpPageState extends State<SignUpPage> {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
+                    String firstName = _firstNameController.text.trim();
+                    String middleName = _middleNameController.text.trim();
+                    String lastName = _lastNameController.text.trim();
+                    String dob = _dobController.text.trim();
                     String username = _usernameController.text.trim();
                     String email = _emailController.text.trim();
                     String password = _passwordController.text;
                     String confirmPassword = _confirmPasswordController.text;
 
+                    if (firstName.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Please enter your first name'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (lastName.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Please enter your last name'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (dob.isEmpty || dob.length < 10) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Please enter a valid date of birth (MM/DD/YYYY)'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
+                      );
+                      return;
+                    }
+
                     if (username.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Please enter a username'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!_isUsernameValid) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Username must be at least 3 characters and contain no spaces'),
                           behavior: SnackBarBehavior.floating,
                           margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
                         ),
@@ -221,6 +345,10 @@ class _SignUpPageState extends State<SignUpPage> {
                           username: username,
                           email: email,
                           password: password,
+                          firstName: firstName,
+                          middleName: middleName,
+                          lastName: lastName,
+                          dob: dob,
                         ),
                       ),
                     );
@@ -286,6 +414,8 @@ class _SignUpPageState extends State<SignUpPage> {
     VoidCallback? onToggleVisibility,
     TextInputType keyboardType = TextInputType.text,
     ValueChanged<String>? onChanged,
+    List<TextInputFormatter>? inputFormatters,
+    Widget? suffixIcon,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -304,6 +434,7 @@ class _SignUpPageState extends State<SignUpPage> {
         obscureText: obscureText,
         keyboardType: keyboardType,
         onChanged: onChanged,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
@@ -311,7 +442,7 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
           border: InputBorder.none,
           hintText: hintText,
-          suffixIcon: isPassword
+          suffixIcon: suffixIcon ?? (isPassword
               ? IconButton(
                   icon: Icon(
                     obscureText ? Icons.visibility_off : Icons.visibility,
@@ -319,9 +450,43 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   onPressed: onToggleVisibility,
                 )
-              : null,
+              : null),
         ),
       ),
+    );
+  }
+}
+
+class DateInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    String text = newValue.text;
+
+    if (text.length < oldValue.text.length) {
+      return newValue;
+    }
+
+    if (text.length > 10) {
+      return oldValue;
+    }
+
+    String result = "";
+    String cleanText = text.replaceAll('/', '');
+
+    for (int i = 0; i < cleanText.length; i++) {
+      if (i == 2 || i == 4) {
+        result += "/";
+      }
+      result += cleanText[i];
+    }
+
+    // Edge case handling: if user types '1' and it's the end of the month part, 
+    // and they type something that would trigger a slash, we could pad it.
+    // However, usually masking works best by just adding slashes.
+    
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
     );
   }
 }

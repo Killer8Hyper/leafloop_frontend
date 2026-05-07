@@ -1,4 +1,5 @@
 import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:math' as math;
 
 class OfflineAIService {
@@ -12,11 +13,14 @@ class OfflineAIService {
   Future<void> init() async {
     try {
       // Attempt to load the TFLite model from assets
+      // We use a try-catch to detect if the model exists. 
+      // If it doesn't, we simply use the heuristic fallback.
       _interpreter = await Interpreter.fromAsset('assets/models/leafloop_model.tflite');
       _isLoaded = true;
-      print("Offline AI: Model loaded successfully.");
+      debugPrint("Offline AI: Model loaded successfully.");
     } catch (e) {
-      print("Offline AI: Model file not found or failed to load. Using heuristic fallback. Error: $e");
+      // Silencing the error since the heuristic fallback is the intended behavior when no model is provided
+      debugPrint("Offline AI: No model found. Operating in heuristic mode.");
       _isLoaded = false;
     }
   }

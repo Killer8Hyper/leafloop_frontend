@@ -21,20 +21,58 @@ class HelpCenterPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildFaqTile(
-            context,
-            "How do I track a mission?",
-            "Go to the Missions tab and click 'Start' on any active eco-challenge.",
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Text(
+              "Learn about LeafLoop",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF3B5236),
+              ),
+            ),
           ),
           _buildFaqTile(
             context,
-            "What is the Tree Growth animation?",
-            "It represents your real-world environmental impact visualised digitally.",
+            "What is the core idea of LeafLoop?",
+            "LeafLoop is designed to bridge the gap between digital habits and real-world environmental action. Our goal is to make sustainable living accessible, gamified, and measurable through small, daily micro-actions.",
+          ),
+          _buildFaqTile(
+            context,
+            "How does the AI growth tree work?",
+            "Our offline AI engine analyzes your mission consistency, the difficulty levels you tackle, and your streaks to predict your 'Life Score.' This score is visualized through your digital tree—as you grow your habits, the tree grows with you.",
+          ),
+          _buildFaqTile(
+            context,
+            "Why do missions have different levels?",
+            "We believe sustainability shouldn't be stressful. By selecting your daily energy level, you get missions that match your capacity—ranging from simple awareness (Easy) to high-impact lifestyle shifts (Hard).",
+          ),
+          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Text(
+              "Common Questions",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF3B5236),
+              ),
+            ),
+          ),
+          _buildFaqTile(
+            context,
+            "How do I track a mission?",
+            "Go to the Missions tab and tap on any mission card. Once completed in real life, tap it in the app to record your progress and update your streak.",
+          ),
+          _buildFaqTile(
+            context,
+            "What happens if I miss a day?",
+            "Sustainability is a journey, not a race! While missing a day will reset your streak, you can start fresh anytime. Your total mission history and tree growth progress are always saved.",
           ),
           _buildFaqTile(
             context,
             "How to report a bug?",
-            "Contact us at support@leafloop.com",
+            "We're always improving! Please contact our team at support@leafloop.com with any technical issues or suggestions.",
           ),
         ],
       ),
