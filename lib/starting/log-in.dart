@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:leafloop/starting/sign-up.dart';
+import 'package:leafloop/starting/forgot_password.dart';
 import 'package:leafloop/screens/homepage.dart'; // Import your new homepage
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
@@ -127,20 +128,40 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 30),
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const SignUpPage()),
-                  );
-                },
-                child: Text(
-                  "Don't have an account? Create one here!",
-                  style: TextStyle(
-                    color: const Color(0xFFD6A573),
-                    decoration: TextDecoration.underline,
-                    fontSize: screenWidth * 0.04,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const SignUpPage()),
+                      );
+                    },
+                    child: Text(
+                      "Sign up",
+                      style: TextStyle(
+                        color: const Color(0xFFD6A573),
+                        fontWeight: FontWeight.bold,
+                        fontSize: screenWidth * 0.04,
+                      ),
+                    ),
                   ),
-                ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
+                      );
+                    },
+                    child: Text(
+                      "Forgot password?",
+                      style: TextStyle(
+                        color: const Color(0xFFD6A573),
+                        fontWeight: FontWeight.bold,
+                        fontSize: screenWidth * 0.04,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 40),
             ],

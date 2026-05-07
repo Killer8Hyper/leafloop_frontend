@@ -8,7 +8,7 @@ class DatabaseHelper {
 
   static Database? _database;
   static const String _databaseName = "leafloop.db";
-  static const int _databaseVersion = 9;
+  static const int _databaseVersion = 10;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -88,6 +88,10 @@ class DatabaseHelper {
         ''');
       } catch (e) {}
     }
+    if (oldVersion < 10) {
+      // Version 10: Seed 30 dummy users with varied stats
+      await _insertDummyAccounts(db);
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -154,6 +158,9 @@ class DatabaseHelper {
 
     // Insert missions
     await _insertMissions(db);
+
+    // Insert dummy accounts
+    await _insertDummyAccounts(db);
   }
 
   Future<void> _insertMissions(Database db) async {
@@ -197,6 +204,103 @@ class DatabaseHelper {
 
     for (var mission in missions) {
       await db.insert('missions', mission);
+    }
+  }
+
+  Future<void> _insertDummyAccounts(Database db) async {
+    List<Map<String, dynamic>> dummyUsers = [];
+    
+    // 30 dummy accounts: 10 Beginner, 10 Intermediate, 10 Advanced
+    for (int i = 1; i <= 30; i++) {
+      int type = (i - 1) ~/ 10; // 0: beginner, 1: intermediate, 2: advanced
+      
+      String first = "Player$i";
+      String last = type == 0 ? "Beginner" : (type == 1 ? "Intermediate" : "Advanced");
+      String username = "user$i";
+      String email = "user$i@leafloop.com";
+      
+      int streak = type == 0 ? (i % 3) : (type == 1 ? 3 + (i % 8) : 15 + (i % 20));
+      int energy = type == 0 ? 1 : (type == 1 ? 2 : 3);
+      
+      int easyCount = type == 0 ? (i % 5) + 1 : (type == 1 ? 10 + (i % 5) : 30 + (i % 10));
+      int medCount = type == 0 ? 0 : (type == 1 ? 5 + (i % 5) : 20 + (i % 10));
+      int hardCount = type == 0 ? 0 : (type == 1 ? (i % 3) : 10 + (i % 10));
+      int totalMissions = easyCount + medCount + hardCount;
+
+      dummyUsers.add({
+        'username': username,
+        'email': email,
+        'password_hash': 'P@ssw0rd',
+        'first_name': first,
+        'last_name': last,
+        'energy_level': energy,
+        'current_streak': streak,
+        'longest_streak': streak + (i % 5),
+        'total_missions': totalMissions,
+        'easy_completed': easyCount,
+        'medium_completed': medCount,
+        'hard_completed': hardCount,
+        'is_admin': 0,
+      });
+    }
+
+    List<int> userIds = [];
+    for (var user in dummyUsers) {
+      int id = await db.insert('users', user, conflictAlgorithm: ConflictAlgorithm.ignore);
+      if (id != 0) userIds.add(id);
+    }
+
+    // Now insert dummy completions to populate eco timeline and tree growth
+    DateTime now = DateTime.now();
+    for (int i = 0; i < userIds.length; i++) {
+      int userId = userIds[i];
+      int originalIndex = i + 1;
+      int type = (originalIndex - 1) ~/ 10;
+      
+      // Simulate recent logins for streak
+      int daysActive = type == 0 ? 2 : (type == 1 ? 10 : 30);
+      for (int d = 0; d < daysActive; d++) {
+        if (d % 2 != 0 && type < 2) continue; // lower tiers skip days
+        DateTime loginDate = now.subtract(Duration(days: d));
+        await db.insert('login_activity', {
+          'user_id': userId,
+          'login_date': loginDate.toIso8601String(),
+        });
+      }
+
+      // Simulate completed missions
+      int easyCount = dummyUsers[i]['easy_completed'];
+      for (int m = 1; m <= 10 && easyCount > 0; m++) {
+        await db.insert('user_missions', {
+          'user_id': userId,
+          'mission_id': m,
+          'completed_date': now.subtract(Duration(days: m % 7)).toIso8601String(),
+          'note': 'Finished this easy mission!',
+        });
+        easyCount--;
+      }
+      
+      int medCount = dummyUsers[i]['medium_completed'];
+      for (int m = 11; m <= 20 && medCount > 0; m++) {
+        await db.insert('user_missions', {
+          'user_id': userId,
+          'mission_id': m,
+          'completed_date': now.subtract(Duration(days: m % 14)).toIso8601String(),
+          'note': 'Great for the environment!',
+        });
+        medCount--;
+      }
+
+      int hardCount = dummyUsers[i]['hard_completed'];
+      for (int m = 21; m <= 30 && hardCount > 0; m++) {
+        await db.insert('user_missions', {
+          'user_id': userId,
+          'mission_id': m,
+          'completed_date': now.subtract(Duration(days: m % 30)).toIso8601String(),
+          'note': 'This was tough but completely worth it!',
+        });
+        hardCount--;
+      }
     }
   }
 
@@ -548,6 +652,16 @@ class DatabaseHelper {
       'energy_level': user.first['energy_level'] ?? 2,
       'completion_rate': await _calculateCompletionRate(userId),
     };
+  }
+
+  Future<void> updatePassword(int userId, String newPasswordHash) async {
+    final db = await database;
+    await db.update(
+      'users',
+      {'password_hash': newPasswordHash},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
   }
 
   Future<double> _calculateCompletionRate(int userId) async {
