@@ -1,0 +1,34 @@
+name: leafloop
+description: "A new Flutter project for Week 10."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  lottie: ^3.1.0
+  image_picker: ^1.1.2
+  sqflite: ^2.3.0
+  path: ^1.8.0
+  tflite_flutter: ^0.10.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/logo/LeafLoop_name.png
+    - assets/images/logo/LeafLoop1.png
+    - assets/images/logo/LeafLoop2.png
+    - assets/animations/tree.json
+    - assets/images/icons/sapling.png
+    - assets/images/icons/trophy.png
+    - assets/images/icons/confetti.png

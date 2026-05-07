@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "leafloop",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/growth_tree.dart"
+        },
+        {
+            "name": "leafloop (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "program": "lib/growth_tree.dart"
+        },
+        {
+            "name": "leafloop (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "program": "lib/growth_tree.dart"
+        }
+    ]
+}
