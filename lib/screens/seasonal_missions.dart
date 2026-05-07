@@ -8,6 +8,7 @@ import 'package:leafloop/services/local_auth_service.dart';
 import 'package:leafloop/screens/admin/users_list.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/screens/settings_pages/edit_missions.dart';
+import 'package:leafloop/widgets/tree_growth_modal.dart';
 
 class SeasonalMissionsScreen extends StatefulWidget {
   const SeasonalMissionsScreen({super.key});
@@ -20,6 +21,7 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
   int _currentStreak = 0;
   String _currentSeason = "Spring";
   Color _seasonColor = const Color(0xFFD6A573);
+  final Set<String> _completedMissions = {}; // Tracks completed seasonal missions
 
   @override
   void initState() {
@@ -232,7 +234,8 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
 
   Widget _buildSeasonalActionCard(String title, String subtitle, String difficulty, IconData icon) {
     Color diffColor = difficulty == "Easy" ? Colors.green : (difficulty == "Medium" ? Colors.orange : Colors.red);
-    
+    bool isDone = _completedMissions.contains(title);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -247,15 +250,32 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: _seasonColor.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(icon, color: _seasonColor, size: 24),
+                decoration: BoxDecoration(
+                  color: isDone
+                      ? Colors.green.withOpacity(0.15)
+                      : _seasonColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isDone ? Icons.check_circle : icon,
+                  color: isDone ? Colors.green : _seasonColor,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 15),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDone ? Colors.grey : null,
+                        decoration: isDone ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
                     Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                   ],
                 ),
@@ -271,31 +291,43 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
                 decoration: BoxDecoration(color: diffColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
                 child: Text(difficulty.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: diffColor)),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
+              isDone
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.green.withOpacity(0.4)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.check_circle, color: Colors.white),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text("Completed! You earned rewards for this $difficulty mission!")),
+                          Icon(Icons.check_circle, color: Colors.green, size: 16),
+                          SizedBox(width: 6),
+                          Text("Completed", style: TextStyle(color: Colors.green, fontSize: 14, fontWeight: FontWeight.w600)),
                         ],
                       ),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: _seasonColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                    )
+                  : ElevatedButton(
+                      onPressed: () async {
+                        setState(() {
+                          _completedMissions.add(title);
+                        });
+                        final int xp = difficulty == 'Easy' ? 5 : (difficulty == 'Medium' ? 10 : 20);
+                        await showTreeGrowthModal(
+                          context,
+                          missionTitle: title,
+                          xpReward: xp,
+                          difficulty: difficulty,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _seasonColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        elevation: 0,
+                      ),
+                      child: const Text("I'm Done", style: TextStyle(color: Colors.white, fontSize: 14)),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _seasonColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 0,
-                ),
-                child: const Text("I'm Done", style: TextStyle(color: Colors.white, fontSize: 14)),
-              ),
             ],
           ),
         ],

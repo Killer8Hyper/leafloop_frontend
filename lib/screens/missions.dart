@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:leafloop/screens/admin/users_list.dart';
 import 'package:intl/intl.dart';
+import 'package:leafloop/widgets/tree_growth_modal.dart';
 
 class MissionsScreen extends StatefulWidget {
   const MissionsScreen({super.key});
@@ -276,15 +277,21 @@ class _MissionsScreenState extends State<MissionsScreen> {
           _completedMissionIds.add(missionId);
           _isProcessing = false;
         });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Mission completed! Streak updated.'),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.only(bottom: 40, left: 20, right: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            duration: const Duration(seconds: 2),
-          ),
+
+        // Find mission details for the modal
+        final mission = _missions.firstWhere(
+          (m) => m['id'] == missionId,
+          orElse: () => {'title': 'Mission', 'xp_reward': 5, 'difficulty': 1},
+        );
+        final int diff = mission['difficulty'] ?? 1;
+        final String diffLabel = diff <= 1 ? 'Easy' : (diff == 2 ? 'Medium' : 'Hard');
+
+        // Show the tree growth celebration modal
+        await showTreeGrowthModal(
+          context,
+          missionTitle: mission['title'] ?? 'Mission',
+          xpReward: mission['xp_reward'] ?? 5,
+          difficulty: diffLabel,
         );
       }
     }
