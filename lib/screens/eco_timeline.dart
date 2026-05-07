@@ -8,6 +8,7 @@ import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
 import 'package:intl/intl.dart';
 import 'package:leafloop/services/offline_ai_service.dart';
+import 'package:leafloop/screens/growth_tree.dart';
 import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 import 'dart:io';
 
@@ -177,52 +178,60 @@ class _EcoTimelineState extends State<EcoTimeline> {
   }
 
   Widget _buildGrowthHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("CURRENT GROWTH", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                  SizedBox(height: 5),
-                  Text("Tree Status", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
-                child: const Icon(Icons.park, color: Colors.white, size: 30),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("${(_currentGrowth * 100).toInt()}% Grown", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              const Text("Target: 100%", style: TextStyle(color: Colors.white70, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: _currentGrowth,
-              backgroundColor: Colors.white24,
-              color: const Color(0xFFD6A573),
-              minHeight: 12,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const TreeGrowthScreen()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).primaryColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("CURRENT GROWTH", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    SizedBox(height: 5),
+                    Text("Tree Status", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+                  child: const Icon(Icons.park, color: Colors.white, size: 30),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("${(_currentGrowth * 100).toInt()}% Grown", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const Text("Target: 100%", style: TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: _currentGrowth,
+                backgroundColor: Colors.white24,
+                color: const Color(0xFFD6A573),
+                minHeight: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

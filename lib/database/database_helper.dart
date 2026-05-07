@@ -318,6 +318,7 @@ class DatabaseHelper {
   Future<void> updateUserProfile({
     required int userId,
     String? username,
+    String? email,
     String? firstName,
     String? middleName,
     String? lastName,
@@ -327,6 +328,7 @@ class DatabaseHelper {
     final db = await database;
     Map<String, dynamic> values = {};
     if (username != null) values['username'] = username;
+    if (email != null) values['email'] = email;
     if (firstName != null) values['first_name'] = firstName;
     if (middleName != null) values['middle_name'] = middleName;
     if (lastName != null) values['last_name'] = lastName;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:leafloop/screens/missions.dart';
 import 'package:leafloop/screens/profile.dart';
 import 'package:leafloop/screens/eco_timeline.dart';
+import 'package:leafloop/screens/growth_tree.dart';
 import 'package:leafloop/screens/admin/users_list.dart';
 import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/database/database_helper.dart';
@@ -169,6 +170,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildUserHome() {
+    String displayName = "Loading...";
+    if (_user != null) {
+      String firstName = _user!['first_name'] ?? "";
+      String lastName = _user!['last_name'] ?? "";
+      if (firstName.isNotEmpty || lastName.isNotEmpty) {
+        displayName = "$firstName $lastName".trim();
+      } else {
+        displayName = _user!['username'] ?? "User";
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -196,7 +208,7 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 Text(
-                  _user != null ? _user!['username'] : "Loading...",
+                  displayName,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -212,48 +224,55 @@ class _HomePageState extends State<HomePage> {
           children: [
             Expanded(
               flex: 5,
-              child: Container(
-                height: 160,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFA8C69F),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${_user?['current_streak'] ?? 0}",
-                          style: TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => const TreeGrowthScreen()),
+                  );
+                },
+                child: Container(
+                  height: 160,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFA8C69F),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${_user?['current_streak'] ?? 0}",
+                            style: TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
                           ),
-                        ),
-                        Text(
-                          (_user?['current_streak'] ?? 0) == 1 ? "Streak Day" : "Streak Days",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
+                          Text(
+                            (_user?['current_streak'] ?? 0) == 1 ? "Streak Day" : "Streak Days",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    Positioned(
-                      bottom: -10,
-                      right: -10,
-                      child: Image.asset(
-                        'assets/images/icons/sapling.png',
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.contain,
+                        ],
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        bottom: -10,
+                        right: -10,
+                        child: Image.asset(
+                          'assets/images/icons/sapling.png',
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

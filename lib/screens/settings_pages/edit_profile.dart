@@ -23,7 +23,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final TextEditingController _middleNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
+  
+  final _formKey = GlobalKey<FormState>();
   
   String? _currentImagePath;
   String? _newImagePath;
@@ -46,6 +49,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             _middleNameController.text = user['middle_name'] ?? "";
             _lastNameController.text = user['last_name'] ?? "";
             _usernameController.text = user['username'] ?? "";
+            _emailController.text = user['email'] ?? "";
             _dobController.text = user['date_of_birth'] ?? "";
             _currentImagePath = user['profile_image_path'];
             _isLoading = false;
@@ -72,18 +76,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
     int? userId = LocalAuthService().currentUserId;
     if (userId == null) return;
 
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     String firstName = _firstNameController.text.trim();
     String middleName = _middleNameController.text.trim();
     String lastName = _lastNameController.text.trim();
     String username = _usernameController.text.trim();
+    String email = _emailController.text.trim();
     String dob = _dobController.text.trim();
-
-    if (firstName.isEmpty || lastName.isEmpty || username.isEmpty || dob.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("All fields except Middle Name are required")),
-      );
-      return;
-    }
 
     await DatabaseHelper().updateUserProfile(
       userId: userId,
@@ -91,6 +93,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       middleName: middleName,
       lastName: lastName,
       username: username,
+      email: email,
       dob: dob,
       profileImagePath: _newImagePath ?? _currentImagePath,
     );
@@ -119,9 +122,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text("Edit Profile", style: TextStyle(color: Colors.white)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
           Center(
             child: Stack(
               children: [
@@ -166,11 +171,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
           const SizedBox(height: 15),
           _buildTextField("Middle Name (Optional)", _middleNameController),
           const SizedBox(height: 15),
-          _buildTextField("Last Name", _lastNameController),
+          _buildTextField("Last Name", _lastNameController, validator: (v) => v == null || v.isEmpty ? "Required" : null),
           const SizedBox(height: 15),
           _buildTextField(
             "Date of Birth (MM/DD/YYYY)", 
             _dobController,
+            validator: (v) {
+              if (v == null || v.isEmpty) return "Required";
+              if (v.length < 10) return "Invalid date (MM/DD/YYYY)";
+              return null;
+            },
             keyboardType: TextInputType.number,
             inputFormatters: [DateInputFormatter()],
             suffixIcon: IconButton(
@@ -191,7 +201,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
           ),
           const SizedBox(height: 15),
-          _buildTextField("Username", _usernameController),
+          _buildTextField("Username", _usernameController, validator: (v) => v == null || v.length < 3 ? "Username too short" : null),
+          const SizedBox(height: 15),
+          _buildTextField(
+            "Email Address", 
+            _emailController, 
+            validator: (v) {
+              if (v == null || v.isEmpty) return "Required";
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) return "Invalid email";
+              return null;
+            },
+          ),
           const SizedBox(height: 40),
           ElevatedButton(
             onPressed: _saveChanges,
@@ -203,6 +223,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             child: const Text("Save Changes", style: TextStyle(color: Colors.white, fontSize: 18)),
           ),
         ],
+        ),
       ),
       bottomNavigationBar: _buildBottomNav(context),
     );
@@ -214,12 +235,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
     Widget? suffixIcon,
+    String? Function(String?)? validator,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       onChanged: (val) => setState(() {}),
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      validator: validator,
       decoration: InputDecoration(
         labelText: label,
         filled: true,
@@ -229,6 +252,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
+        errorStyle: const TextStyle(height: 0.5),
       ),
     );
   }
@@ -247,7 +271,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(context, Icons.home_outlined, "Home", const HomePage()),
+              _buildNavItem(context, Icons.home_outlined, "Home", const HomePage(), isHome: true),
               _buildNavItem(context, Icons.access_time, "Timeline", const EcoTimeline()),
               const SizedBox(width: 50),
               _buildNavItem(context, Icons.track_changes, "Missions", const MissionsScreen()),
@@ -287,9 +311,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, IconData icon, String label, Widget destination) {
+  Widget _buildNavItem(BuildContext context, IconData icon, String label, Widget destination, {bool isHome = false}) {
     return GestureDetector(
-      onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => destination)),
+      onTap: () {
+        if (isHome) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => destination),
+            (route) => false,
+          );
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => destination),
+          );
+        }
+      },
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -126,12 +126,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: const TextStyle(
                           fontSize: 28,
                           color: Colors.white,
-                          decoration: TextDecoration.underline,
                         ),
                       ),
-                      Text(
-                        ecoType,
-                        style: const TextStyle(fontSize: 34, color: Colors.white),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            ecoType,
+                            style: const TextStyle(fontSize: 34, color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.info_outline, color: Colors.white70, size: 24),
+                            onPressed: () => _showEcoTypeInfo(context),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -204,26 +213,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: const TextStyle(
               fontSize: 24,
               color: Color(0xFFD6A573), // Accent color usually stays consistent
-              decoration: TextDecoration.underline,
             ),
           ),
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerLeft,
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-                children: [
-                  const TextSpan(text: "Status: "),
-                  TextSpan(
-                    text: status,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+            child: Row(
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    children: [
+                      const TextSpan(text: "Status: "),
+                      TextSpan(
+                        text: status,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                if (title == "Progression")
+                  IconButton(
+                    icon: Icon(Icons.info_outline, color: Theme.of(context).primaryColor, size: 20),
+                    onPressed: () => _showStatusInfo(context),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -286,21 +303,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(context, Icons.home_outlined, "Home", () {
-                Navigator.of(context).pushAndRemoveUntil(
+                Navigator.of(context).pushReplacement(
                   MaterialPageRoute(builder: (context) => const HomePage()),
-                  (route) => false,
                 );
               }),
-              _buildNavItem(context, LocalAuthService().isAdmin ? Icons.people : Icons.access_time, LocalAuthService().isAdmin ? "Users" : "Eco Timeline", () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => LocalAuthService().isAdmin ? const UsersListScreen() : const EcoTimeline()),
+              _buildNavItem(context, isAdmin ? Icons.people : Icons.access_time, isAdmin ? "Users" : "Eco Timeline", () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => isAdmin ? const UsersListScreen() : const EcoTimeline()),
                 );
               }),
               const SizedBox(width: 50),
-              _buildNavItem(context, LocalAuthService().isAdmin ? Icons.settings_suggest : Icons.track_changes, LocalAuthService().isAdmin ? "Manage" : "Missions", () {
-                Navigator.of(context).push(
+              _buildNavItem(context, isAdmin ? Icons.settings_suggest : Icons.track_changes, isAdmin ? "Manage" : "Missions", () {
+                Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => LocalAuthService().isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
+                    builder: (context) => isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                 );
               }),
@@ -379,6 +395,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEcoTypeInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Eco Types"),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(leading: Icon(Icons.eco, color: Colors.green), title: Text("Beginner"), subtitle: Text("Level 1")),
+            ListTile(leading: Icon(Icons.security, color: Colors.blue), title: Text("Eco-Warrior"), subtitle: Text("Level 2")),
+            ListTile(leading: Icon(Icons.star, color: Colors.amber), title: Text("Master"), subtitle: Text("Level 3")),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showStatusInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Progression"),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(leading: Icon(Icons.local_florist, color: Colors.green), title: Text("Seedling"), subtitle: Text("0-9 missions")),
+            ListTile(leading: Icon(Icons.nature, color: Colors.green), title: Text("Green Grower"), subtitle: Text("10+ missions")),
+          ],
+        ),
       ),
     );
   }
