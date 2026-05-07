@@ -206,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: "Stats",
                         status: "Active",
                         description:
-                            "Total Missions: $totalMissions\nLongest Streak: ${_user?['longest_streak'] ?? 0}",
+                            "Total Missions: $totalMissions\nLongest Streak: ${_user?['longest_streak'] ?? 0} ${(_user?['longest_streak'] ?? 0) == 1 ? 'Day' : 'Days'}",
                         percentage: "",
                         progress: 0.0,
                         icon: Icons.bar_chart,

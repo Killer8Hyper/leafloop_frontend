@@ -47,39 +47,40 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
     super.dispose();
   }
 
-  void _updateMeter(String value) {
-    if (value.isEmpty) return;
-    double? newValue = double.tryParse(value);
-    if (newValue != null && newValue >= 1 && newValue <= 100) {
-      setState(() {
-        _currentEnergyValue = newValue;
-      });
-    }
+  void _updateMeter(double newValue) {
+    setState(() {
+      _currentEnergyValue = newValue.clamp(0, 100);
+      _energyController.text = _currentEnergyValue.toInt().toString();
+    });
   }
 
   void _handleInteraction(Offset localPosition, Size size) {
-    // The meter is centered horizontally and at the bottom vertically of its container
     final double centerX = size.width / 2;
-    final double centerY = size.height; // Since the height is radius
+    final double centerY = size.height;
     
-    // Calculate angle from center to touch point
-    double angle = math.atan2(localPosition.dy - centerY, localPosition.dx - centerX);
+    double dx = localPosition.dx - centerX;
+    double dy = localPosition.dy - centerY;
     
-    // For the top half of the meter:
-    // Left side (1) is at pi (approx 3.14) or -pi
-    // Right side (100) is at 0
-    if (angle < 0) {
-      double normalizedAngle = angle.abs(); // 0 (right) to pi (left)
-      
-      // Map pi (left) -> 1, 0 (right) -> 100
-      double percentage = 1.0 - (normalizedAngle / math.pi); // 0 (left) to 1 (right)
-      double newValue = (percentage * 99) + 1;
-      
-      setState(() {
-        _currentEnergyValue = newValue.clamp(1, 100);
-        _energyController.text = _currentEnergyValue.toInt().toString();
-      });
-    }
+    double angle = math.atan2(dy, dx);
+    
+    // Normalize angle to be between -PI and 0 for the top arc
+    if (angle > 0) angle = angle - (2 * math.pi);
+    
+    // Map -PI (0%) to 0 (100%)
+    double percentage = (angle + math.pi) / math.pi;
+    _updateMeter(percentage * 100);
+  }
+
+  String _getEnergyStatus() {
+    if (_currentEnergyValue < 33) return "Resting / Low Energy";
+    if (_currentEnergyValue < 67) return "Active / Moderate Energy";
+    return "High / Energetic";
+  }
+
+  Color _getEnergyColor() {
+    if (_currentEnergyValue < 33) return const Color(0xFF67AC78);
+    if (_currentEnergyValue < 67) return const Color(0xFFE9CE5B);
+    return const Color(0xFFF1A851);
   }
 
   // --- NEW: POPUP LOGIC ---
@@ -144,7 +145,7 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
             children: [
-              const SizedBox(height: 80),
+              const SizedBox(height: 50),
               Center(
                 child: SizedBox(
                   width: screenWidth * 0.5,
@@ -154,7 +155,7 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 60),
+              const SizedBox(height: 30),
 
               Text(
                 "Select your energy level:",
@@ -167,7 +168,7 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(height: 100),
+              const SizedBox(height: 60),
 
               Center(
                 child: GestureDetector(
@@ -256,41 +257,53 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                 ),
               ),
 
-              const SizedBox(height: 60),
-
-              Container(
-                width: screenWidth * 0.6,
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 20),
+              const SizedBox(height: 20),
+              
+              // New Slider for 0-100 dragging
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: Theme.of(context).primaryColor,
+                    inactiveTrackColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                    thumbColor: Theme.of(context).primaryColor,
+                    overlayColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                    valueIndicatorColor: Theme.of(context).primaryColor,
+                    valueIndicatorTextStyle: const TextStyle(color: Colors.white),
                   ),
-                  child: TextField(
-                    controller: _energyController,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
+                  child: Slider(
+                    value: _currentEnergyValue,
+                    min: 0,
+                    max: 100,
+                    divisions: 100,
+                    label: _currentEnergyValue.toInt().toString(),
                     onChanged: _updateMeter,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(vertical: 20),
-                      border: InputBorder.none,
-                      hintText: "1-100",
-                    ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 50),
+              Text(
+                _getEnergyStatus(),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _getEnergyColor(),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              Text(
+                "${_currentEnergyValue.toInt()}%",
+                style: TextStyle(
+                  fontSize: 56,
+                  fontWeight: FontWeight.w900,
+                  color: _getEnergyColor(),
+                ),
+              ),
+
+              const SizedBox(height: 30),
 
               SizedBox(
                 width: double.infinity,
@@ -419,7 +432,7 @@ class EnergyMeterPainter extends CustomPainter {
 
     canvas.drawCircle(Offset(centerX, centerY), needleBaseRadius, needlePaint);
 
-    double degrees = ((value - 1) / 99) * 180;
+    double degrees = (value / 100) * 180;
     double radians = (degrees * (math.pi / 180)) + startAngle;
 
     final double needleEndX = centerX + math.cos(radians) * needleLength;

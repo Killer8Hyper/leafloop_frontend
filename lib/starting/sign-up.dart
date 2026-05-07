@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:leafloop/starting/log-in.dart';
 // IMPORT the new page
 import 'package:leafloop/starting/add-profile.dart';
+import 'package:leafloop/database/database_helper.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -33,6 +34,11 @@ class _SignUpPageState extends State<SignUpPage> {
     // No spaces, minimum 3 characters
     final usernameRegex = RegExp(r'^\S{3,}$');
     return usernameRegex.hasMatch(_usernameController.text);
+  }
+
+  bool get _isEmailValid {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(_emailController.text.trim());
   }
 
   bool get _isPasswordMatch {
@@ -146,6 +152,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: _emailController, 
                 hintText: "enter email (ex. juan@email.com)",
                 keyboardType: TextInputType.emailAddress,
+                onChanged: (val) => setState(() {}),
               ),
 
               const SizedBox(height: 20),
@@ -191,136 +198,90 @@ class _SignUpPageState extends State<SignUpPage> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    String firstName = _firstNameController.text.trim();
-                    String middleName = _middleNameController.text.trim();
-                    String lastName = _lastNameController.text.trim();
-                    String dob = _dobController.text.trim();
-                    String username = _usernameController.text.trim();
-                    String email = _emailController.text.trim();
-                    String password = _passwordController.text;
-                    String confirmPassword = _confirmPasswordController.text;
+                    onPressed: () async {
+                      String firstName = _firstNameController.text.trim();
+                      String middleName = _middleNameController.text.trim();
+                      String lastName = _lastNameController.text.trim();
+                      String dob = _dobController.text.trim();
+                      String username = _usernameController.text.trim();
+                      String email = _emailController.text.trim();
+                      String password = _passwordController.text;
+                      String confirmPassword = _confirmPasswordController.text;
 
-                    if (firstName.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Please enter your first name'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                      // Granular Validations
+                      if (firstName.isEmpty) {
+                        _showSnackBar('Please enter your first name');
+                        return;
+                      }
+                      if (lastName.isEmpty) {
+                        _showSnackBar('Please enter your last name');
+                        return;
+                      }
+                      if (dob.isEmpty) {
+                        _showSnackBar('Please select your date of birth');
+                        return;
+                      }
+                      if (username.isEmpty) {
+                        _showSnackBar('Please enter a username');
+                        return;
+                      }
+                      if (!_isUsernameValid) {
+                        _showSnackBar('Username must be 3+ chars with no spaces');
+                        return;
+                      }
+                      if (email.isEmpty) {
+                        _showSnackBar('Please enter your email address');
+                        return;
+                      }
+                      if (!_isEmailValid) {
+                        _showSnackBar('Please enter a valid email address');
+                        return;
+                      }
+                      if (password.isEmpty) {
+                        _showSnackBar('Please enter a password');
+                        return;
+                      }
+                      if (!_isPasswordValid) {
+                        _showSnackBar('Password does not meet security standards');
+                        return;
+                      }
+                      if (confirmPassword.isEmpty) {
+                        _showSnackBar('Please confirm your password');
+                        return;
+                      }
+                      if (!_isPasswordMatch) {
+                        _showSnackBar('Passwords do not match');
+                        return;
+                      }
+
+                      // Check if Username is already taken
+                      bool usernameTaken = await DatabaseHelper().isUsernameTaken(username);
+                      if (usernameTaken) {
+                        _showSnackBar('This username is already taken. Please choose another.');
+                        return;
+                      }
+
+                      // Check if Email is already taken
+                      bool emailTaken = await DatabaseHelper().isEmailTaken(email);
+                      if (emailTaken) {
+                        _showSnackBar('This email is already registered. Try logging in.');
+                        return;
+                      }
+
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => AddProfilePage(
+                            username: username,
+                            email: email,
+                            password: password,
+                            firstName: firstName,
+                            middleName: middleName,
+                            lastName: lastName,
+                            dob: dob,
+                          ),
                         ),
                       );
-                      return;
-                    }
-
-                    if (lastName.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Please enter your last name'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (dob.isEmpty || dob.length < 10) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Please enter a valid date of birth (MM/DD/YYYY)'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (username.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Please enter a username'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (!_isUsernameValid) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Username must be at least 3 characters and contain no spaces'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Simple Email Regex
-                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                    if (email.isEmpty || !emailRegex.hasMatch(email)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Please enter a valid email address'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (password.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Please enter a password'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Password Validation Regex: 8+ chars, 1 capital, 1 number, 1 symbol
-                    final passwordRegex = RegExp(r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$');
-                    if (!passwordRegex.hasMatch(password)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Password must be 8+ chars, with 1 capital, 1 number, and 1 symbol'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (password != confirmPassword) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Passwords do not match'),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Navigate to add-profile.dart and PASS the username
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => AddProfilePage(
-                          // Pass the data to the next screen
-                          username: username,
-                          email: email,
-                          password: password,
-                          firstName: firstName,
-                          middleName: middleName,
-                          lastName: lastName,
-                          dob: dob,
-                        ),
-                      ),
-                    );
-                  },
+                    },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B5236),
                     shape: RoundedRectangleBorder(
@@ -370,6 +331,16 @@ class _SignUpPageState extends State<SignUpPage> {
           fontSize: screenWidth * 0.045,
           fontWeight: FontWeight.w500,
         ),
+      ),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
       ),
     );
   }

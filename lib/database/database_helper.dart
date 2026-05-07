@@ -18,7 +18,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'leafloop.db');
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -30,11 +30,28 @@ class DatabaseHelper {
       await db.execute('DROP TABLE IF EXISTS missions');
       await db.execute('DROP TABLE IF EXISTS users');
       await _onCreate(db, newVersion);
-    } else if (oldVersion < 3) {
+    }
+    if (oldVersion < 3) {
       // Version 3: Add first_name, middle_name, last_name
       await db.execute('ALTER TABLE users ADD COLUMN first_name TEXT');
       await db.execute('ALTER TABLE users ADD COLUMN middle_name TEXT');
       await db.execute('ALTER TABLE users ADD COLUMN last_name TEXT');
+    }
+    if (oldVersion < 4) {
+      // Version 4: Add date_of_birth (Safe check)
+      try {
+        await db.execute('ALTER TABLE users ADD COLUMN date_of_birth TEXT');
+      } catch (e) {
+        // Column might already exist
+      }
+    }
+    if (oldVersion < 5) {
+      // Version 5: Ensuring Date of Birth is present
+      try {
+        await db.execute('ALTER TABLE users ADD COLUMN date_of_birth TEXT');
+      } catch (e) {
+        // Safe to ignore if already exists
+      }
     }
   }
 

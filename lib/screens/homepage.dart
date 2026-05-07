@@ -134,7 +134,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             Text(
-                              "Streak Days",
+                              (_user?['current_streak'] ?? 0) == 1 ? "Streak Day" : "Streak Days",
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
