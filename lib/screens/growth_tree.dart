@@ -7,6 +7,7 @@ import 'package:leafloop/screens/profile.dart';
 import 'package:leafloop/widgets/nav_menu.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/services/local_auth_service.dart';
+import 'package:leafloop/services/offline_ai_service.dart';
 
 class TreeGrowthScreen extends StatefulWidget {
   const TreeGrowthScreen({super.key});
@@ -20,6 +21,7 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
   double _currentGrowth = 0.0;
   int _longestStreak = 0;
   late AnimationController _lottieController;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -32,20 +34,35 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
   }
 
   Future<void> _loadData() async {
-    int? userId = LocalAuthService().currentUserId;
-    if (userId != null) {
-      var user = await DatabaseHelper().getUserById(userId);
-      if (user != null && mounted) {
-        setState(() {
-          _longestStreak = user['longest_streak'] ?? 0;
-          int totalMissions = user['total_missions'] ?? 0;
-          // Tree fully grows at 50 missions.
-          _currentGrowth = (totalMissions / 50.0).clamp(0.0, 1.0);
-        });
+    try {
+      int? userId = LocalAuthService().currentUserId;
+      if (userId != null) {
+        // Get detailed stats for AI inference
+        var stats = await DatabaseHelper().getUserMissionStats(userId);
+        var user = await DatabaseHelper().getUserById(userId);
         
-        // Animate the tree up to the earned growth
-        _lottieController.animateTo(_currentGrowth, curve: Curves.easeInOut, duration: const Duration(seconds: 2));
+        // Use AI Service for growth prediction
+        double aiGrowth = await OfflineAIService().predictGrowth(stats);
+
+        if (mounted) {
+          setState(() {
+            _longestStreak = user?['longest_streak'] ?? 0;
+            _currentGrowth = aiGrowth;
+            _isLoading = false;
+          });
+          
+          // Animate the tree up to the predicted growth
+          _lottieController.animateTo(
+            _currentGrowth, 
+            curve: Curves.easeInOut, 
+            duration: const Duration(seconds: 2)
+          );
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
       }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -112,27 +129,29 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
               width: double.infinity,
               color: Theme.of(context).cardColor,
               child: Center(
-                child: RepaintBoundary(
-                  child: Lottie.asset(
-                    'assets/animations/tree.json',
-                    controller: _lottieController,
-                    delegates: LottieDelegates(
-                      values: [
-                        ValueDelegate.opacity([
-                          '**',
-                          'Background',
-                          '**',
-                        ], value: 0),
-                        ValueDelegate.opacity(['**', 'Solid', '**'], value: 0),
-                      ],
+                child: _isLoading 
+                  ? const CircularProgressIndicator()
+                  : RepaintBoundary(
+                      child: Lottie.asset(
+                        'assets/animations/tree.json',
+                        controller: _lottieController,
+                        delegates: LottieDelegates(
+                          values: [
+                            ValueDelegate.opacity([
+                              '**',
+                              'Background',
+                              '**',
+                            ], value: 0),
+                            ValueDelegate.opacity(['**', 'Solid', '**'], value: 0),
+                          ],
+                        ),
+                        onLoaded: (composition) {
+                          _lottieController.duration = composition.duration;
+                          _lottieController.value = 0.0;
+                          _lottieController.animateTo(_currentGrowth, curve: Curves.easeInOut, duration: const Duration(seconds: 2));
+                        },
+                      ),
                     ),
-                    onLoaded: (composition) {
-                      _lottieController.duration = composition.duration;
-                      _lottieController.value = 0.0;
-                      _lottieController.animateTo(_currentGrowth, curve: Curves.easeInOut, duration: const Duration(seconds: 2));
-                    },
-                  ),
-                ),
               ),
             ),
           ),

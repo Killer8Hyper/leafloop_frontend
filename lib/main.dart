@@ -3,12 +3,15 @@ import 'package:leafloop/starting/landing_page.dart';
 import 'package:leafloop/screens/homepage.dart';
 import 'package:leafloop/services/local_auth_service.dart';
 
+import 'package:leafloop/services/offline_ai_service.dart';
+
 // Global notifier to manage theme state across the app
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalAuthService().init();
+  await OfflineAIService().init();
   runApp(const LeafLoopApp());
 }
 
