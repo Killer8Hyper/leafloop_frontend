@@ -9,7 +9,7 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
@@ -17,21 +17,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   int? _userId;
   bool _obscurePassword = true;
 
-  void _verifyUsername() async {
-    String username = _usernameController.text.trim();
-    if (username.isEmpty) {
-      _showError('Please enter your username');
+  void _verifyEmail() async {
+    String email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showError('Please enter your email');
       return;
     }
 
-    var user = await DatabaseHelper().getUserByUsername(username);
+    var user = await DatabaseHelper().getUserByEmail(email);
     if (user != null) {
       setState(() {
         _userFound = true;
         _userId = user['id'];
       });
     } else {
-      _showError('User not found. Please check your username.');
+      _showError('User not found. Please check your email.');
     }
   }
 
@@ -112,7 +112,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               Text(
                 _userFound 
                   ? "Enter your new password below."
-                  : "Enter your username to find your account.",
+                  : "Enter your email to find your account.",
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
@@ -120,16 +120,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
               if (!_userFound) ...[
                 _buildTextField(
-                  controller: _usernameController,
-                  hintText: "Enter your username",
-                  icon: Icons.person_outline,
+                  controller: _emailController,
+                  hintText: "Enter your email",
+                  icon: Icons.email_outlined,
                 ),
                 const SizedBox(height: 30),
                 SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                    onPressed: _verifyUsername,
+                    onPressed: _verifyEmail,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3B5236),
                       shape: RoundedRectangleBorder(
