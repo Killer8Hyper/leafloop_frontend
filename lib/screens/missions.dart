@@ -103,12 +103,11 @@ class _MissionsScreenState extends State<MissionsScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
-          // Add listener if not already added to update button state
+          // Add listener to update button state and character count in real-time
           noteController.addListener(() {
-            bool valid = noteController.text.trim().length >= 15;
-            if (valid != isNoteValid) {
-              setModalState(() => isNoteValid = valid);
-            }
+            setModalState(() {
+              isNoteValid = noteController.text.trim().length >= 15;
+            });
           });
 
           return Container(

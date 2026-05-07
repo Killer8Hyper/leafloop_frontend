@@ -133,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
           Center(
             child: Text(
-              "Version 1.0.2",
+              "Version 1.6.7",
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ),

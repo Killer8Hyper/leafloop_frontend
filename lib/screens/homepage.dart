@@ -33,6 +33,7 @@ class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> _dailyLoginStats = [];
   List<Map<String, dynamic>> _topMissionsUsers = [];
   List<Map<String, dynamic>> _topStreakUsers = [];
+  Set<int> _completedMissionIds = {};
 
   @override
   void initState() {
@@ -92,11 +93,20 @@ class _HomePageState extends State<HomePage> {
         // Load User Stats
         var missions = await DatabaseHelper().getMissionsByDifficulty(user?['energy_level'] ?? 2, limit: 3);
         var todayCount = await DatabaseHelper().getTodayCompletedCount(userId);
+        
+        var completedMissions = await DatabaseHelper().getUserCompletedMissions(userId);
+        String today = DateTime.now().toIso8601String().substring(0, 10);
+        var completedIds = completedMissions
+            .where((m) => m['completed_date'].toString().startsWith(today))
+            .map((m) => m['id'] as int)
+            .toSet();
+
         if (mounted) {
           setState(() {
             _user = user;
             _missions = missions;
             _todayCount = todayCount;
+            _completedMissionIds = completedIds;
           });
         }
       }
@@ -365,7 +375,7 @@ class _HomePageState extends State<HomePage> {
         if (_missions.isEmpty)
           const Center(child: CircularProgressIndicator())
         else
-          ..._missions.map((m) => _buildMissionItem(context, m['title'] ?? 'Mission', false)).toList(),
+          ..._missions.map((m) => _buildMissionItem(context, m['title'] ?? 'Mission', _completedMissionIds.contains(m['id']))).toList(),
         const SizedBox(height: 100),
       ],
     );
