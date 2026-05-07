@@ -71,7 +71,18 @@ class _LoginPageState extends State<LoginPage> {
                     String username = _usernameController.text.trim();
                     String password = _passwordController.text;
                     
-                    if (username.isEmpty || password.isEmpty) return;
+                    if (username.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter your username')),
+                      );
+                      return;
+                    }
+                    if (password.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter your password')),
+                      );
+                      return;
+                    }
                     
                     var user = await DatabaseHelper().getUserByUsername(username);
                     if (user != null && user['password_hash'] == password) {

@@ -91,13 +91,45 @@ class _SignUpPageState extends State<SignUpPage> {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
+                    String username = _usernameController.text.trim();
+                    String password = _passwordController.text;
+                    String confirmPassword = _confirmPasswordController.text;
+
+                    if (username.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a username')),
+                      );
+                      return;
+                    }
+
+                    if (password.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a password')),
+                      );
+                      return;
+                    }
+
+                    if (password.length < 6) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Password must be at least 6 characters')),
+                      );
+                      return;
+                    }
+
+                    if (password != confirmPassword) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Passwords do not match')),
+                      );
+                      return;
+                    }
+
                     // Navigate to add-profile.dart and PASS the username
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => AddProfilePage(
                           // Pass the username and password to the next screen
-                          username: _usernameController.text,
-                          password: _passwordController.text,
+                          username: username,
+                          password: password,
                         ),
                       ),
                     );
