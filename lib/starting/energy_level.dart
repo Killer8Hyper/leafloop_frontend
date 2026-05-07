@@ -7,10 +7,11 @@ import 'package:leafloop/services/local_auth_service.dart';
 
 class EnergyLevelPage extends StatefulWidget {
   final String username;
+  final String email;
   final String password;
   final String? profileImagePath;
 
-  const EnergyLevelPage({super.key, required this.username, required this.password, this.profileImagePath});
+  const EnergyLevelPage({super.key, required this.username, required this.email, required this.password, this.profileImagePath});
 
   @override
   State<EnergyLevelPage> createState() => _EnergyLevelPageState();
@@ -253,9 +254,25 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                     else if (energy > 66) energyLevel = 3;
 
                     try {
+                      bool userTaken = await DatabaseHelper().isUsernameTaken(widget.username);
+                      if (userTaken) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Username already exists. Please go back and change it.')),
+                        );
+                        return;
+                      }
+
+                      bool emailTaken = await DatabaseHelper().isEmailTaken(widget.email);
+                      if (emailTaken) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Email address is already in use.')),
+                        );
+                        return;
+                      }
+
                       int userId = await DatabaseHelper().createUser(
                           widget.username,
-                          '${widget.username}@leafloop.com', // Dummy email for now
+                          widget.email,
                           widget.password,
                           energyLevel,
                           profileImagePath: widget.profileImagePath
@@ -266,7 +283,7 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                       _showEnergySetPopup();
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Username already exists or error occurred')),
+                        const SnackBar(content: Text('An error occurred while creating your account.')),
                       );
                     }
                   },

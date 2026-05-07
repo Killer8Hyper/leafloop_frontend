@@ -141,6 +141,28 @@ class DatabaseHelper {
     });
   }
 
+  // Check if username is taken
+  Future<bool> isUsernameTaken(String username) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where: 'username = ?',
+      whereArgs: [username],
+    );
+    return result.isNotEmpty;
+  }
+
+  // Check if email is taken
+  Future<bool> isEmailTaken(String email) async {
+    final db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    return result.isNotEmpty;
+  }
+
   // Get user by username
   Future<Map<String, dynamic>?> getUserByUsername(String username) async {
     final db = await database;

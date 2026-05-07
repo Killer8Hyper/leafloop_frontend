@@ -14,6 +14,7 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -49,7 +50,17 @@ class _SignUpPageState extends State<SignUpPage> {
 
               _buildLabel("Username:", screenWidth),
               const SizedBox(height: 8),
-              _buildTextField(controller: _usernameController, hintText: ""),
+              _buildTextField(controller: _usernameController, hintText: "Choose a unique username"),
+
+              const SizedBox(height: 20),
+
+              _buildLabel("Email Address:", screenWidth),
+              const SizedBox(height: 8),
+              _buildTextField(
+                controller: _emailController, 
+                hintText: "Enter your email",
+                keyboardType: TextInputType.emailAddress,
+              ),
 
               const SizedBox(height: 20),
 
@@ -92,12 +103,20 @@ class _SignUpPageState extends State<SignUpPage> {
                 child: ElevatedButton(
                   onPressed: () {
                     String username = _usernameController.text.trim();
+                    String email = _emailController.text.trim();
                     String password = _passwordController.text;
                     String confirmPassword = _confirmPasswordController.text;
 
                     if (username.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Please enter a username')),
+                      );
+                      return;
+                    }
+
+                    if (email.isEmpty || !email.contains('@')) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a valid email address')),
                       );
                       return;
                     }
@@ -127,8 +146,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => AddProfilePage(
-                          // Pass the username and password to the next screen
+                          // Pass the data to the next screen
                           username: username,
+                          email: email,
                           password: password,
                         ),
                       ),
@@ -193,6 +213,7 @@ class _SignUpPageState extends State<SignUpPage> {
     bool isPassword = false,
     bool obscureText = false,
     VoidCallback? onToggleVisibility,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -209,6 +230,7 @@ class _SignUpPageState extends State<SignUpPage> {
       child: TextField(
         controller: controller,
         obscureText: obscureText,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,

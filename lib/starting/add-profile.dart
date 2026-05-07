@@ -10,9 +10,10 @@ import 'package:leafloop/starting/energy_level.dart';
 
 class AddProfilePage extends StatefulWidget {
   final String username;
+  final String email;
   final String password;
 
-  const AddProfilePage({super.key, required this.username, required this.password});
+  const AddProfilePage({super.key, required this.username, required this.email, required this.password});
 
   @override
   State<AddProfilePage> createState() => _AddProfilePageState();
@@ -60,6 +61,14 @@ class _AddProfilePageState extends State<AddProfilePage> {
   }
 
   void _showSuccessDialog() {
+    String username = _usernameController.text.trim();
+    if (username.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a username')),
+      );
+      return;
+    }
+
     double screenWidth = MediaQuery.of(context).size.width;
 
     showDialog(
@@ -95,15 +104,15 @@ class _AddProfilePageState extends State<AddProfilePage> {
                   width: screenWidth * 0.4,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Navigate to final navigation hier navigation hier finally finally hier fully final navigation here final finally hier finally hierarchy hierarchy
-                      print("Close dialog, navigating..."); // DEBUG
+                      // Navigate to final navigation
                       Navigator.of(context).pop(); // Close Dialog first
 
                       // Navigate to the next page, removing previous stack
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
                           builder: (context) => EnergyLevelPage(
-                            username: widget.username,
+                            username: username,
+                            email: widget.email,
                             password: widget.password,
                             profileImagePath: _savedImagePath,
                           ),
