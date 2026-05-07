@@ -100,17 +100,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          if (LocalAuthService().isAdmin) ...[
-            const SizedBox(height: 20),
-            _buildSectionHeader("Management"),
-            _buildSettingsTile(
-              icon: Icons.admin_panel_settings_outlined,
-              title: "Admin Dashboard",
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const AdminDashboard()),
-              ),
-            ),
-          ],
           const SizedBox(height: 40),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

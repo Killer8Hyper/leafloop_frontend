@@ -55,100 +55,122 @@ class _MissionsScreenState extends State<MissionsScreen> {
     File? selectedImage;
     final ImagePicker picker = ImagePicker();
 
+    bool isNoteValid = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 20),
-              Text(
-                "Mission Accomplished?",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "Have you finished \"${mission['title']}\"?",
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: noteController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  hintText: "Add a quick note about what you did...",
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        builder: (context, setModalState) {
+          // Add listener if not already added to update button state
+          noteController.addListener(() {
+            bool valid = noteController.text.trim().length >= 15;
+            if (valid != isNoteValid) {
+              setModalState(() => isNoteValid = valid);
+            }
+          });
+
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              left: 20,
+              right: 20,
+              top: 20,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 20),
+                Text(
+                  "Mission Accomplished?",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
                 ),
-              ),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () async {
-                  final XFile? image = await picker.pickImage(source: ImageSource.camera);
-                  if (image != null) {
-                    setModalState(() => selectedImage = File(image.path));
-                  }
-                },
-                child: Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(15),
-                    image: selectedImage != null ? DecorationImage(image: FileImage(selectedImage!), fit: BoxFit.cover) : null,
+                const SizedBox(height: 10),
+                Text(
+                  "Have you finished \"${mission['title']}\"?",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: noteController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    hintText: "Add a note (min. 15 characters)...",
+                    helperText: "Character count: ${noteController.text.length}/15",
+                    helperStyle: TextStyle(color: isNoteValid ? Colors.green : Colors.orange),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                   ),
-                  child: selectedImage == null 
-                    ? const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [Icon(Icons.camera_alt, size: 40, color: Colors.grey), Text("Add a picture (Optional)", style: TextStyle(color: Colors.grey))],
-                      ) 
-                    : null,
                 ),
-              ),
-              const SizedBox(height: 30),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Not yet", style: TextStyle(color: Colors.grey, fontSize: 16)),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () async {
+                    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+                    if (image != null) {
+                      setModalState(() => selectedImage = File(image.path));
+                    }
+                  },
+                  child: Container(
+                    height: 150,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(15),
+                      image: selectedImage != null ? DecorationImage(image: FileImage(selectedImage!), fit: BoxFit.cover) : null,
                     ),
+                    child: selectedImage == null 
+                      ? const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [Icon(Icons.camera_alt, size: 40, color: Colors.grey), Text("Add a picture (Optional)", style: TextStyle(color: Colors.grey))],
+                        ) 
+                      : null,
                   ),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await _completeMission(mission['id'], note: noteController.text, imagePath: selectedImage?.path);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFA8C69F),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Not yet", style: TextStyle(color: Colors.grey, fontSize: 16)),
                       ),
-                      child: const Text("Yes, I'm Done!", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: isNoteValid ? () async {
+                          Navigator.pop(context);
+                          await _completeMission(mission['id'], note: noteController.text, imagePath: selectedImage?.path);
+                        } : null, // Disable if not valid
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isNoteValid ? const Color(0xFF3B5236) : Colors.grey[300],
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: isNoteValid ? 2 : 0,
+                        ),
+                        child: Text(
+                          "Yes, I'm Done!", 
+                          style: TextStyle(
+                            color: isNoteValid ? Colors.white : Colors.grey[500], 
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold
+                          )
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

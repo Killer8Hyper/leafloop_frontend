@@ -94,6 +94,7 @@ class _LoginPageState extends State<LoginPage> {
                     
                     var user = await DatabaseHelper().getUserByUsername(username);
                     if (user != null && user['password_hash'] == password) {
+                      await DatabaseHelper().recordLogin(user['id']); // NEW: Track login
                       await LocalAuthService().login(
                         user['id'], 
                         user['username'], 

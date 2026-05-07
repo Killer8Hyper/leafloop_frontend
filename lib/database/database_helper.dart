@@ -7,6 +7,8 @@ class DatabaseHelper {
   DatabaseHelper._internal();
 
   static Database? _database;
+  static const String _databaseName = "leafloop.db";
+  static const int _databaseVersion = 9;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -15,10 +17,10 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'leafloop.db');
+    String path = join(await getDatabasesPath(), _databaseName);
     return await openDatabase(
       path,
-      version: 8,
+      version: _databaseVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -72,6 +74,18 @@ class DatabaseHelper {
       try {
         await db.execute('ALTER TABLE user_missions ADD COLUMN note TEXT');
         await db.execute('ALTER TABLE user_missions ADD COLUMN image_path TEXT');
+      } catch (e) {}
+    }
+    if (oldVersion < 9) {
+      // Version 9: Add login_activity table
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS login_activity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            login_date DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        ''');
       } catch (e) {}
     }
   }
@@ -254,6 +268,39 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getAllUsers() async {
     final db = await database;
     return await db.query('users', orderBy: 'created_at DESC');
+  }
+
+  // Get Daily Mission Stats for Chart
+  Future<List<Map<String, dynamic>>> getDailyMissionStats() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT DATE(completed_date) as date, COUNT(*) as count 
+      FROM user_missions 
+      WHERE completed_date >= date('now', '-7 days')
+      GROUP BY DATE(completed_date)
+      ORDER BY date ASC
+    ''');
+  }
+
+  // Record a Login Event
+  Future<void> recordLogin(int userId) async {
+    final db = await database;
+    await db.insert('login_activity', {
+      'user_id': userId,
+      'login_date': DateTime.now().toIso8601String(),
+    });
+  }
+
+  // Get Daily Login Stats for Chart
+  Future<List<Map<String, dynamic>>> getDailyLoginStats() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT DATE(login_date) as date, COUNT(*) as count 
+      FROM login_activity 
+      WHERE login_date >= date('now', '-7 days')
+      GROUP BY DATE(login_date)
+      ORDER BY date ASC
+    ''');
   }
 
   // Update user energy level

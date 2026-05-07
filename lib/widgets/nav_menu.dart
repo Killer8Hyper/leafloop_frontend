@@ -5,7 +5,8 @@ import 'package:leafloop/screens/missions.dart';
 import 'package:leafloop/screens/profile.dart';
 import 'package:leafloop/screens/growth_tree.dart';
 import 'package:leafloop/screens/seasonal_missions.dart';
-import 'package:leafloop/screens/settings.dart'; // Added this import
+import 'package:leafloop/services/local_auth_service.dart';
+import 'package:leafloop/screens/admin/users_list.dart';
 
 void showNavigationMenu(BuildContext context) {
   showModalBottomSheet(
@@ -14,7 +15,7 @@ void showNavigationMenu(BuildContext context) {
     backgroundColor: Colors.transparent,
     builder: (context) {
       return Container(
-        height: MediaQuery.of(context).size.height * 0.70,
+        height: MediaQuery.of(context).size.height * 0.55,
         decoration: const BoxDecoration(
           color: Color(0xFF3B5236),
           borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
@@ -39,9 +40,9 @@ void showNavigationMenu(BuildContext context) {
                   ),
                   _buildMenuIcon(
                     context,
-                    Icons.watch_later_outlined,
-                    "Timeline",
-                    const EcoTimeline(),
+                    LocalAuthService().isAdmin ? Icons.people : Icons.watch_later_outlined,
+                    LocalAuthService().isAdmin ? "Users" : "Timeline",
+                    LocalAuthService().isAdmin ? const UsersListScreen() : const EcoTimeline(),
                   ),
                   _buildMenuIcon(
                     context,
@@ -58,7 +59,7 @@ void showNavigationMenu(BuildContext context) {
                   _buildMenuIcon(
                     context,
                     Icons.filter_vintage_outlined,
-                    "S.Mission",
+                    "Seasonal Mission",
                     const SeasonalMissionsScreen(),
                   ),
                   _buildMenuIcon(
@@ -66,12 +67,6 @@ void showNavigationMenu(BuildContext context) {
                     Icons.park_outlined,
                     "Tree",
                     const TreeGrowthScreen(),
-                  ),
-                  _buildMenuIcon(
-                    context,
-                    Icons.settings_outlined,
-                    "Settings",
-                    const SettingsScreen(), // FIXED: Now points to the new SettingsScreen
                   ),
                 ],
               ),
