@@ -258,7 +258,7 @@ class _EnergyLevelPageState extends State<EnergyLevelPage> {
                           widget.password,
                           energyLevel
                       );
-                      LocalAuthService().login(userId, widget.username);
+                      await LocalAuthService().login(userId, widget.username);
                       
                       // Triggers the popup
                       _showEnergySetPopup();

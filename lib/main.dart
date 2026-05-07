@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:leafloop/starting/landing_page.dart';
+import 'package:leafloop/screens/homepage.dart';
+import 'package:leafloop/services/local_auth_service.dart';
 
 // Global notifier to manage theme state across the app
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
-void main() => runApp(const LeafLoopApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await LocalAuthService().init();
+  runApp(const LeafLoopApp());
+}
 
 class LeafLoopApp extends StatelessWidget {
   const LeafLoopApp({super.key});
@@ -38,7 +44,7 @@ class LeafLoopApp extends StatelessWidget {
             ), // A lighter green for better contrast in dark mode
             cardColor: const Color(0xFF2D2F2C),
           ),
-          home: const LandingPage(),
+          home: LocalAuthService().isLoggedIn ? const HomePage() : const LandingPage(),
         );
       },
     );

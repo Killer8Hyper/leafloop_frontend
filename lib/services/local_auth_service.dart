@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 class LocalAuthService {
   static final LocalAuthService _instance = LocalAuthService._internal();
   factory LocalAuthService() => _instance;
@@ -6,14 +8,26 @@ class LocalAuthService {
   int? currentUserId;
   String? currentUsername;
 
-  void login(int id, String username) {
-    currentUserId = id;
-    currentUsername = username;
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    currentUserId = prefs.getInt('userId');
+    currentUsername = prefs.getString('username');
   }
 
-  void logout() {
+  Future<void> login(int id, String username) async {
+    currentUserId = id;
+    currentUsername = username;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('userId', id);
+    await prefs.setString('username', username);
+  }
+
+  Future<void> logout() async {
     currentUserId = null;
     currentUsername = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId');
+    await prefs.remove('username');
   }
 
   bool get isLoggedIn => currentUserId != null;

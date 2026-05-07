@@ -163,18 +163,27 @@ class DatabaseHelper {
   }
 
   // Update user streak after completing mission
-  Future<void> updateUserStreak(int userId) async {
+  Future<void> updateUserStreak(int userId, bool isNewDay) async {
     final db = await database;
-    await db.rawQuery('''
-      UPDATE users 
-      SET current_streak = current_streak + 1,
-          longest_streak = CASE 
-            WHEN current_streak + 1 > longest_streak THEN current_streak + 1 
-            ELSE longest_streak 
-          END,
-          total_missions = total_missions + 1
-      WHERE id = ?
-    ''', [userId]);
+    
+    if (isNewDay) {
+      await db.rawQuery('''
+        UPDATE users 
+        SET current_streak = current_streak + 1,
+            longest_streak = CASE 
+              WHEN current_streak + 1 > longest_streak THEN current_streak + 1 
+              ELSE longest_streak 
+            END,
+            total_missions = total_missions + 1
+        WHERE id = ?
+      ''', [userId]);
+    } else {
+      await db.rawQuery('''
+        UPDATE users 
+        SET total_missions = total_missions + 1
+        WHERE id = ?
+      ''', [userId]);
+    }
   }
 
   // ==================== MISSION METHODS ====================
@@ -211,6 +220,41 @@ class DatabaseHelper {
   Future<void> completeMission(int userId, int missionId) async {
     final db = await database;
     
+    String today = DateTime.now().toIso8601String().substring(0, 10);
+    
+    // Check if already completed today
+    var existing = await db.rawQuery('''
+      SELECT id FROM user_missions 
+      WHERE user_id = ? AND mission_id = ? 
+      AND DATE(completed_date) = ?
+    ''', [userId, missionId, today]);
+    
+    if (existing.isNotEmpty) {
+      return; // Already completed this specific mission today
+    }
+
+    // Check if ANY mission was completed today (to determine if streak goes up)
+    var anyToday = await db.rawQuery('''
+      SELECT id FROM user_missions 
+      WHERE user_id = ? AND DATE(completed_date) = ?
+    ''', [userId, today]);
+    
+    bool isNewDay = anyToday.isEmpty;
+
+    // Check if yesterday had a mission. If not, and this is a new day, streak resets.
+    if (isNewDay) {
+      String yesterday = DateTime.now().subtract(const Duration(days: 1)).toIso8601String().substring(0, 10);
+      var anyYesterday = await db.rawQuery('''
+        SELECT id FROM user_missions 
+        WHERE user_id = ? AND DATE(completed_date) = ?
+      ''', [userId, yesterday]);
+      
+      if (anyYesterday.isEmpty) {
+        // Streak broken
+        await db.update('users', {'current_streak': 0}, where: 'id = ?', whereArgs: [userId]);
+      }
+    }
+
     await db.insert('user_missions', {
       'user_id': userId,
       'mission_id': missionId,
@@ -218,7 +262,7 @@ class DatabaseHelper {
     });
     
     // Update user stats
-    await updateUserStreak(userId);
+    await updateUserStreak(userId, isNewDay);
   }
 
   // Get user's completed missions
