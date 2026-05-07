@@ -92,7 +92,7 @@ Widget _buildMenuIcon(
       Navigator.pop(context);
       Navigator.of(
         context,
-      ).pushReplacement(MaterialPageRoute(builder: (context) => destination));
+      ).push(MaterialPageRoute(builder: (context) => destination));
     },
     child: Column(
       children: [

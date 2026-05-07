@@ -538,12 +538,13 @@ class _MissionsScreenState extends State<MissionsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(context, Icons.home_outlined, "Home", () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => HomePage()),
+                  (route) => false,
                 );
               }),
               _buildNavItem(context, LocalAuthService().isAdmin ? Icons.people : Icons.access_time, LocalAuthService().isAdmin ? "Users" : "Eco Timeline", () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => LocalAuthService().isAdmin ? UsersListScreen() : EcoTimeline()),
                 );
               }),
@@ -553,7 +554,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 LocalAuthService().isAdmin ? Icons.settings_suggest : Icons.track_changes, 
                 LocalAuthService().isAdmin ? "Manage" : "Missions", 
                 () {
-                  Navigator.of(context).pushReplacement(
+                  Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => LocalAuthService().isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                     ),
@@ -562,7 +563,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 isActive: true,
               ),
               _buildNavItem(context, Icons.person_outline, "Profile", () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const ProfileScreen(),
                   ),

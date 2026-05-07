@@ -357,8 +357,9 @@ class _EcoTimelineState extends State<EcoTimeline> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(context, Icons.home_outlined, "Home", () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const HomePage()),
+                  (route) => false,
                 );
               }),
               _buildNavItem(
@@ -370,14 +371,14 @@ class _EcoTimelineState extends State<EcoTimeline> {
               ),
               const SizedBox(width: 50),
               _buildNavItem(context, LocalAuthService().isAdmin ? Icons.settings_suggest : Icons.track_changes, LocalAuthService().isAdmin ? "Manage" : "Missions", () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => LocalAuthService().isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                 );
               }, isActive: false),
               _buildNavItem(context, Icons.person_outline, "Profile", () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const ProfileScreen(),
                   ),

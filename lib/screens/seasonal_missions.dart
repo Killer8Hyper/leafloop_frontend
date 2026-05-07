@@ -450,17 +450,16 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
                 context,
                 Icons.home_outlined,
                 LocalAuthService().isAdmin ? "Dashboard" : "Home",
-                () => Navigator.pushReplacement(
-                  context,
+                () => Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const HomePage()),
+                  (route) => false,
                 ),
               ),
               _buildNavItem(
                 context,
                 LocalAuthService().isAdmin ? Icons.people : Icons.access_time,
                 LocalAuthService().isAdmin ? "Users" : "Timeline",
-                () => Navigator.pushReplacement(
-                  context,
+                () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => LocalAuthService().isAdmin ? const UsersListScreen() : const EcoTimeline()),
                 ),
               ),
@@ -480,8 +479,7 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
                 context,
                 Icons.person_outline,
                 "Profile",
-                () => Navigator.pushReplacement(
-                  context,
+                () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const ProfileScreen(),
                   ),

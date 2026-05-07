@@ -146,15 +146,18 @@ class _UsersListScreenState extends State<UsersListScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(Icons.home_outlined, "Dashboard", () {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()));
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  (route) => false,
+                );
               }),
               _buildNavItem(Icons.people, "Users", () {}, isActive: true),
               const SizedBox(width: 50),
               _buildNavItem(Icons.settings_suggest, "Manage", () {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const EditMissionsScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const EditMissionsScreen()));
               }),
               _buildNavItem(Icons.person_outline, "Profile", () {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
               }),
             ],
           ),

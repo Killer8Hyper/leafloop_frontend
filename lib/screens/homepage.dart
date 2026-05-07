@@ -579,7 +579,7 @@ class _HomePageState extends State<HomePage> {
                 LocalAuthService().isAdmin ? Icons.people : Icons.access_time, 
                 LocalAuthService().isAdmin ? "Users" : "Eco Timeline", 
                 () {
-                  Navigator.of(context).pushReplacement(
+                  Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => LocalAuthService().isAdmin 
                         ? const UsersListScreen() 
@@ -590,14 +590,14 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(width: 50),
               _buildNavItem(context, isAdmin ? Icons.settings_suggest : Icons.track_changes, isAdmin ? "Manage" : "Missions", () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => isAdmin ? const EditMissionsScreen() : const MissionsScreen(),
                   ),
                 );
               }, isActive: false),
               _buildNavItem(context, Icons.person_outline, "Profile", () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const ProfileScreen(),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:leafloop/database/database_helper.dart';
+import 'package:leafloop/screens/homepage.dart';
 
 class EditMissionsScreen extends StatefulWidget {
   const EditMissionsScreen({super.key});
@@ -149,7 +150,14 @@ class _EditMissionsScreenState extends State<EditMissionsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Manage Missions"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage()),
+          ),
+        ),
+        title: const Text("Manage Missions", style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF3B5236),
       ),
       body: _isLoading
