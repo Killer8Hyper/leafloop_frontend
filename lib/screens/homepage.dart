@@ -24,6 +24,7 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? _user;
   List<Map<String, dynamic>> _missions = [];
   int _todayCount = 0;
+  bool _isLoading = true;
   
   // Admin stats
   int _totalUsers = 0;
@@ -42,7 +43,29 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadData() async {
+    if (mounted) setState(() => _isLoading = true);
+
+    // Re-init the service in case the singleton lost its in-memory state
+    // (e.g., app resumed from background without going through the login flow).
+    await LocalAuthService().init();
+
     int? userId = LocalAuthService().currentUserId;
+
+    // Fallback: if still null, try to look up by username stored in prefs.
+    if (userId == null) {
+      final username = LocalAuthService().currentUsername;
+      if (username != null) {
+        final found = await DatabaseHelper().getUserByUsername(username);
+        if (found != null) {
+          userId = found['id'] as int?;
+          if (userId != null) {
+            await LocalAuthService().login(userId, username,
+                isAdmin: (found['is_admin'] ?? 0) == 1);
+          }
+        }
+      }
+    }
+
     if (userId != null) {
       var user = await DatabaseHelper().getUserById(userId);
       
@@ -87,6 +110,7 @@ class _HomePageState extends State<HomePage> {
             _dailyLoginStats = fullLoginStats;
             _topMissionsUsers = topMissions;
             _topStreakUsers = topStreaks;
+            _isLoading = false;
           });
         }
       } else {
@@ -116,9 +140,12 @@ class _HomePageState extends State<HomePage> {
             _missions = missions;
             _todayCount = todayCount;
             _completedMissionIds = completedIds;
+            _isLoading = false;
           });
         }
       }
+    } else {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -381,8 +408,18 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         const SizedBox(height: 15),
-        if (_missions.isEmpty)
+        if (_isLoading)
           const Center(child: CircularProgressIndicator())
+        else if (_missions.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'No missions available.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          )
         else
           ..._missions.map((m) => _buildMissionItem(context, m['title'] ?? 'Mission', _completedMissionIds.contains(m['id']))).toList(),
         const SizedBox(height: 100),
