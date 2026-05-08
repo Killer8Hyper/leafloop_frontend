@@ -45,59 +45,75 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadData() async {
     if (mounted) setState(() => _isLoading = true);
 
-    // Re-init the service in case the singleton lost its in-memory state
-    // (e.g., app resumed from background without going through the login flow).
-    await LocalAuthService().init();
+    try {
+      // Re-init the service to restore session from SharedPreferences.
+      await LocalAuthService().init();
 
-    int? userId = LocalAuthService().currentUserId;
+      int? userId = LocalAuthService().currentUserId;
 
-    // Fallback: if still null, try to look up by username stored in prefs.
-    if (userId == null) {
-      final username = LocalAuthService().currentUsername;
-      if (username != null) {
-        final found = await DatabaseHelper().getUserByUsername(username);
-        if (found != null) {
-          userId = found['id'] as int?;
-          if (userId != null) {
-            await LocalAuthService().login(userId, username,
-                isAdmin: (found['is_admin'] ?? 0) == 1);
+      // Fallback: look up by stored username if userId is somehow null.
+      if (userId == null) {
+        final username = LocalAuthService().currentUsername;
+        if (username != null && username.isNotEmpty) {
+          final found = await DatabaseHelper().getUserByUsername(username);
+          if (found != null) {
+            userId = found['id'] as int?;
+            if (userId != null) {
+              await LocalAuthService().login(
+                userId,
+                username,
+                isAdmin: (found['is_admin'] ?? 0) == 1,
+              );
+            }
           }
         }
       }
-    }
 
-    if (userId != null) {
-      var user = await DatabaseHelper().getUserById(userId);
-      
-      if (user?['is_admin'] == 1) {
-        // Load Admin Stats
+      if (userId == null) {
+        // Not logged in — nothing to load.
+        return;
+      }
+
+      final user = await DatabaseHelper().getUserById(userId);
+
+      if (user == null) {
+        // User row missing — nothing to load.
+        return;
+      }
+
+      if (user['is_admin'] == 1) {
+        // ── Admin Dashboard ──────────────────────────────────────────────
         final allUsers = await DatabaseHelper().getAllUsers();
         final db = await DatabaseHelper().database;
-        final totalCompleted = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM user_missions')) ?? 0;
+        final totalCompleted = Sqflite.firstIntValue(
+              await db.rawQuery('SELECT COUNT(*) FROM user_missions')) ??
+            0;
         final recentActivity = await db.rawQuery('''
-          SELECT u.username, m.title, m.icon, um.completed_date 
-          FROM user_missions um 
-          JOIN users u ON um.user_id = u.id 
-          JOIN missions m ON um.mission_id = m.id 
+          SELECT u.username, m.title, m.icon, um.completed_date
+          FROM user_missions um
+          JOIN users u ON um.user_id = u.id
+          JOIN missions m ON um.mission_id = m.id
           ORDER BY um.completed_date DESC LIMIT 5
         ''');
         final dailyStats = await DatabaseHelper().getDailyMissionStats();
         final loginStats = await DatabaseHelper().getDailyLoginStats();
-        
-        final topMissions = await db.rawQuery('SELECT username, total_missions FROM users ORDER BY total_missions DESC LIMIT 3');
-        final topStreaks = await db.rawQuery('SELECT username, current_streak FROM users ORDER BY current_streak DESC LIMIT 3');
-        
-        // Generate last 7 days with 0 if no data
+        final topMissions = await db.rawQuery(
+            'SELECT username, total_missions FROM users ORDER BY total_missions DESC LIMIT 3');
+        final topStreaks = await db.rawQuery(
+            'SELECT username, current_streak FROM users ORDER BY current_streak DESC LIMIT 3');
+
+        // Fill last 7 days with 0 where there is no data.
         List<Map<String, dynamic>> fullStats = [];
         List<Map<String, dynamic>> fullLoginStats = [];
         for (int i = 6; i >= 0; i--) {
-          String dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(Duration(days: i)));
-          
-          var existingMission = dailyStats.firstWhere((element) => element['date'] == dateStr, orElse: () => {'date': dateStr, 'count': 0});
-          fullStats.add(existingMission);
-
-          var existingLogin = loginStats.firstWhere((element) => element['date'] == dateStr, orElse: () => {'date': dateStr, 'count': 0});
-          fullLoginStats.add(existingLogin);
+          final dateStr = DateFormat('yyyy-MM-dd')
+              .format(DateTime.now().subtract(Duration(days: i)));
+          fullStats.add(dailyStats.firstWhere(
+              (e) => e['date'] == dateStr,
+              orElse: () => {'date': dateStr, 'count': 0}));
+          fullLoginStats.add(loginStats.firstWhere(
+              (e) => e['date'] == dateStr,
+              orElse: () => {'date': dateStr, 'count': 0}));
         }
 
         if (mounted) {
@@ -110,29 +126,36 @@ class _HomePageState extends State<HomePage> {
             _dailyLoginStats = fullLoginStats;
             _topMissionsUsers = topMissions;
             _topStreakUsers = topStreaks;
-            _isLoading = false;
           });
         }
       } else {
-        // Load User Stats
-        var todayCount = await DatabaseHelper().getTodayCompletedCount(userId);
-
-        var completedMissions = await DatabaseHelper().getUserCompletedMissions(userId);
-        String today = DateTime.now().toIso8601String().substring(0, 10);
-        var completedIds = completedMissions
+        // ── Regular User Home ─────────────────────────────────────────────
+        final todayCount = await DatabaseHelper().getTodayCompletedCount(userId);
+        final completedMissions =
+            await DatabaseHelper().getUserCompletedMissions(userId);
+        final today = DateTime.now().toIso8601String().substring(0, 10);
+        final completedIds = completedMissions
             .where((m) => m['completed_date'].toString().startsWith(today))
             .map((m) => m['id'] as int)
             .toSet();
 
-        // Always show 1 Easy + 1 Medium + 1 Hard, shuffled for variety each visit.
-        // Missions stay visible even after completion so the user sees their progress.
-        var allMissions = await DatabaseHelper().getAllMissions();
-        allMissions.shuffle();
+        final allMissions = await DatabaseHelper().getAllMissions();
+        List<Map<String, dynamic>> missions = [];
 
-        final easy   = allMissions.firstWhere((m) => (m['difficulty'] ?? 1) <= 1,  orElse: () => allMissions.first);
-        final medium = allMissions.firstWhere((m) => (m['difficulty'] ?? 1) == 2,  orElse: () => allMissions.first);
-        final hard   = allMissions.firstWhere((m) => (m['difficulty'] ?? 1) >= 3,  orElse: () => allMissions.first);
-        final missions = [easy, medium, hard];
+        if (allMissions.isNotEmpty) {
+          allMissions.shuffle();
+          // Pick one of each difficulty; fall back to any available mission.
+          final easyList   = allMissions.where((m) => (m['difficulty'] ?? 1) <= 1).toList();
+          final mediumList = allMissions.where((m) => (m['difficulty'] ?? 1) == 2).toList();
+          final hardList   = allMissions.where((m) => (m['difficulty'] ?? 1) >= 3).toList();
+
+          if (easyList.isNotEmpty)   missions.add(easyList.first);
+          if (mediumList.isNotEmpty) missions.add(mediumList.first);
+          if (hardList.isNotEmpty)   missions.add(hardList.first);
+
+          // If some difficulties are missing, pad with anything available.
+          if (missions.isEmpty) missions = allMissions.take(3).toList();
+        }
 
         if (mounted) {
           setState(() {
@@ -140,11 +163,13 @@ class _HomePageState extends State<HomePage> {
             _missions = missions;
             _todayCount = todayCount;
             _completedMissionIds = completedIds;
-            _isLoading = false;
           });
         }
       }
-    } else {
+    } catch (e, stack) {
+      debugPrint('_loadData error: $e\n$stack');
+    } finally {
+      // Always clear the loading flag, no matter what happened above.
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -219,15 +244,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildUserHome() {
-    String displayName = "Loading...";
-    if (_user != null) {
-      String firstName = _user!['first_name'] ?? "";
-      String lastName = _user!['last_name'] ?? "";
+    final String displayName;
+    if (_isLoading) {
+      displayName = '...';
+    } else if (_user != null) {
+      final firstName = (_user!['first_name'] ?? '').toString().trim();
+      final lastName  = (_user!['last_name']  ?? '').toString().trim();
       if (firstName.isNotEmpty || lastName.isNotEmpty) {
-        displayName = "$firstName $lastName".trim();
+        displayName = '$firstName $lastName'.trim();
       } else {
-        displayName = _user!['username'] ?? "User";
+        displayName = (_user!['username'] ?? 'User').toString();
       }
+    } else {
+      displayName = LocalAuthService().currentUsername ?? 'User';
     }
 
     return Column(
