@@ -263,59 +263,65 @@ class DatabaseHelper {
       });
     }
 
-    List<int> userIds = [];
-    for (var user in dummyUsers) {
-      int id = await db.insert('users', user, conflictAlgorithm: ConflictAlgorithm.ignore);
-      if (id != 0) userIds.add(id);
+    // Map each successfully inserted userId to its dummyUser data
+    Map<int, Map<String, dynamic>> insertedUsers = {};
+    for (int i = 0; i < dummyUsers.length; i++) {
+      int id = await db.insert('users', dummyUsers[i],
+          conflictAlgorithm: ConflictAlgorithm.ignore);
+      if (id != 0) insertedUsers[id] = dummyUsers[i];
     }
 
-    // Now insert dummy completions to populate eco timeline and tree growth
+    // Now insert dummy completions — always using the correct userId/data pair
     DateTime now = DateTime.now();
-    for (int i = 0; i < userIds.length; i++) {
-      int userId = userIds[i];
-      int originalIndex = i + 1;
-      int type = (originalIndex - 1) ~/ 10;
-      
-      // Simulate recent logins for streak
+    int idx = 0;
+    for (var entry in insertedUsers.entries) {
+      int userId = entry.key;
+      var data = entry.value;
+      int type = (idx ~/ 10).clamp(0, 2);
+      idx++;
+
+      // Simulate recent logins
       int daysActive = type == 0 ? 2 : (type == 1 ? 10 : 30);
       for (int d = 0; d < daysActive; d++) {
-        if (d % 2 != 0 && type < 2) continue; // lower tiers skip days
-        DateTime loginDate = now.subtract(Duration(days: d));
+        if (d % 2 != 0 && type < 2) continue;
         await db.insert('login_activity', {
           'user_id': userId,
-          'login_date': loginDate.toIso8601String(),
+          'login_date': now.subtract(Duration(days: d)).toIso8601String(),
         });
       }
 
-      // Simulate completed missions
-      int easyCount = dummyUsers[i]['easy_completed'];
+      // Simulate completed missions using data paired to this userId
+      int easyCount = data['easy_completed'] as int;
       for (int m = 1; m <= 10 && easyCount > 0; m++) {
         await db.insert('user_missions', {
           'user_id': userId,
           'mission_id': m,
-          'completed_date': now.subtract(Duration(days: m % 7)).toIso8601String(),
+          'completed_date':
+              now.subtract(Duration(days: m % 7)).toIso8601String(),
           'note': 'Finished this easy mission!',
         });
         easyCount--;
       }
-      
-      int medCount = dummyUsers[i]['medium_completed'];
+
+      int medCount = data['medium_completed'] as int;
       for (int m = 11; m <= 20 && medCount > 0; m++) {
         await db.insert('user_missions', {
           'user_id': userId,
           'mission_id': m,
-          'completed_date': now.subtract(Duration(days: m % 14)).toIso8601String(),
+          'completed_date':
+              now.subtract(Duration(days: m % 14)).toIso8601String(),
           'note': 'Great for the environment!',
         });
         medCount--;
       }
 
-      int hardCount = dummyUsers[i]['hard_completed'];
+      int hardCount = data['hard_completed'] as int;
       for (int m = 21; m <= 30 && hardCount > 0; m++) {
         await db.insert('user_missions', {
           'user_id': userId,
           'mission_id': m,
-          'completed_date': now.subtract(Duration(days: m % 30)).toIso8601String(),
+          'completed_date':
+              now.subtract(Duration(days: m % 30)).toIso8601String(),
           'note': 'This was tough but completely worth it!',
         });
         hardCount--;

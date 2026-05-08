@@ -91,15 +91,24 @@ class _HomePageState extends State<HomePage> {
         }
       } else {
         // Load User Stats
-        var missions = await DatabaseHelper().getMissionsByDifficulty(user?['energy_level'] ?? 2, limit: 3);
         var todayCount = await DatabaseHelper().getTodayCompletedCount(userId);
-        
+
         var completedMissions = await DatabaseHelper().getUserCompletedMissions(userId);
         String today = DateTime.now().toIso8601String().substring(0, 10);
         var completedIds = completedMissions
             .where((m) => m['completed_date'].toString().startsWith(today))
             .map((m) => m['id'] as int)
             .toSet();
+
+        // Always show 1 Easy + 1 Medium + 1 Hard, shuffled for variety each visit.
+        // Missions stay visible even after completion so the user sees their progress.
+        var allMissions = await DatabaseHelper().getAllMissions();
+        allMissions.shuffle();
+
+        final easy   = allMissions.firstWhere((m) => (m['difficulty'] ?? 1) <= 1,  orElse: () => allMissions.first);
+        final medium = allMissions.firstWhere((m) => (m['difficulty'] ?? 1) == 2,  orElse: () => allMissions.first);
+        final hard   = allMissions.firstWhere((m) => (m['difficulty'] ?? 1) >= 3,  orElse: () => allMissions.first);
+        final missions = [easy, medium, hard];
 
         if (mounted) {
           setState(() {

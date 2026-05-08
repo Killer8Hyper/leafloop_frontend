@@ -65,20 +65,19 @@ class OfflineAIService {
     double hard = (stats['hard_count'] ?? 0).toDouble();
     double streak = (stats['current_streak'] ?? 0).toDouble();
 
+    // A brand-new user with no completed missions and no streak is always 0%.
+    if (total == 0 && streak == 0) return 0.0;
+
     // --- Volume score (45%): sqrt curve, saturates at 30 missions ---
-    // sqrt(1/30) ≈ 0.183 after 1 mission — immediately visible
     double volumeScore = math.sqrt((total / 30.0).clamp(0.0, 1.0));
 
-    // --- Difficulty score (25%): weighted XP, saturates at 60 pts ---
-    // Easy=1pt, Medium=2pt, Hard=3pt
+    // --- Difficulty score (25%): weighted points, saturates at 60 pts ---
     double weightedPoints = (easy * 1) + (medium * 2) + (hard * 3);
     double difficultyScore = (weightedPoints / 60.0).clamp(0.0, 1.0);
 
     // --- Streak score (30%): saturates at 7 consecutive days ---
-    // 1-day streak = ~14%, 3 days = ~43%, 7 days = 100%
     double streakScore = math.sqrt((streak / 7.0).clamp(0.0, 1.0));
 
-    // Combine with weights
     double finalGrowth =
         (volumeScore * 0.45) + (difficultyScore * 0.25) + (streakScore * 0.30);
 
