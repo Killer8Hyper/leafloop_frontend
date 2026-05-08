@@ -9,6 +9,7 @@ import 'package:leafloop/screens/admin/users_list.dart';
 import 'package:leafloop/database/database_helper.dart';
 import 'package:leafloop/screens/settings_pages/edit_missions.dart';
 import 'package:leafloop/widgets/tree_growth_modal.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SeasonalMissionsScreen extends StatefulWidget {
   const SeasonalMissionsScreen({super.key});
@@ -21,13 +22,43 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
   int _currentStreak = 0;
   String _currentSeason = "Spring";
   Color _seasonColor = const Color(0xFFD6A573);
-  final Set<String> _completedMissions = {}; // Tracks completed seasonal missions
+  Set<String> _completedMissions = {}; // Tracks completed seasonal missions
+
+  /// Returns a SharedPreferences key scoped to the current user and today's date.
+  /// This ensures completions reset automatically on a new day.
+  String get _prefsKey {
+    final userId = LocalAuthService().currentUserId ?? 'guest';
+    final today = DateTime.now();
+    final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    return 'seasonal_completed_${userId}_$dateStr';
+  }
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _determineSeason();
+    _loadCompletedMissions();
+  }
+
+  /// Loads persisted completed missions from SharedPreferences.
+  Future<void> _loadCompletedMissions() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList(_prefsKey) ?? [];
+    if (mounted) {
+      setState(() {
+        _completedMissions = saved.toSet();
+      });
+    }
+  }
+
+  /// Marks a mission as complete both in memory and in SharedPreferences.
+  Future<void> _markMissionComplete(String title) async {
+    setState(() {
+      _completedMissions.add(title);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_prefsKey, _completedMissions.toList());
   }
 
   Future<void> _loadUserData() async {
@@ -310,9 +341,7 @@ class _SeasonalMissionsScreenState extends State<SeasonalMissionsScreen> {
                     )
                   : ElevatedButton(
                       onPressed: () async {
-                        setState(() {
-                          _completedMissions.add(title);
-                        });
+                        await _markMissionComplete(title);
                         final int xp = difficulty == 'Easy' ? 5 : (difficulty == 'Medium' ? 10 : 20);
                         await showTreeGrowthModal(
                           context,

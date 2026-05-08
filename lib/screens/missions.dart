@@ -217,18 +217,23 @@ class _MissionsScreenState extends State<MissionsScreen> {
 
   Future<void> _showAddCustomMissionDialog() async {
     final TextEditingController titleController = TextEditingController();
-    
-    showDialog(
+
+    await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text("Create Custom Mission"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Make your own eco-goal! Custom missions give 5 XP.", style: TextStyle(fontSize: 14, color: Colors.grey)),
+            const Text(
+              "Make your own eco-goal! Custom missions give 5 XP.",
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
             const SizedBox(height: 15),
             TextField(
               controller: titleController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 labelText: "What's your mission?",
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -237,23 +242,62 @@ class _MissionsScreenState extends State<MissionsScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () async {
-              if (titleController.text.trim().isEmpty) return;
-              
-              final missionData = {
-                'title': titleController.text.trim(),
-                'description': 'Custom User Mission',
-                'difficulty': 1,
-                'category': 'community',
-                'xp_reward': 5, // LOW EXP as requested
-                'icon': '✨',
-              };
-              
-              await DatabaseHelper().addMission(missionData);
-              Navigator.pop(context);
-              _loadMissions();
+              final title = titleController.text.trim();
+              if (title.isEmpty) return;
+
+              // Close dialog immediately so we use a clean context afterwards
+              Navigator.pop(dialogContext);
+
+              try {
+                final missionData = {
+                  'title': title,
+                  'description': 'Custom User Mission',
+                  'difficulty': 1,
+                  'category': 'community',
+                  'xp_reward': 5,
+                  'icon': '✨',
+                };
+
+                await DatabaseHelper().addMission(missionData);
+
+                if (!mounted) return;
+                await _loadMissions();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text('Mission "$title" added!')),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF3B5236),
+                      behavior: SnackBarBehavior.floating,
+                      margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to add mission: $e'),
+                      backgroundColor: Colors.red[700],
+                      behavior: SnackBarBehavior.floating,
+                      margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B5236)),
             child: const Text("Add", style: TextStyle(color: Colors.white)),
@@ -261,6 +305,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
         ],
       ),
     );
+
+    titleController.dispose();
   }
 
   Future<void> _completeMission(int missionId, {String? note, String? imagePath}) async {

@@ -22,6 +22,8 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
     with SingleTickerProviderStateMixin {
   double _currentGrowth = 0.0;
   int _longestStreak = 0;
+  int _currentStreak = 0;
+  int _totalMissions = 0;
   late AnimationController _lottieController;
   bool _isLoading = true;
 
@@ -39,25 +41,24 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
     try {
       int? userId = LocalAuthService().currentUserId;
       if (userId != null) {
-        // Get detailed stats for AI inference
         var stats = await DatabaseHelper().getUserMissionStats(userId);
         var user = await DatabaseHelper().getUserById(userId);
-        
-        // Use AI Service for growth prediction
+
         double aiGrowth = await OfflineAIService().predictGrowth(stats);
 
         if (mounted) {
           setState(() {
             _longestStreak = user?['longest_streak'] ?? 0;
+            _currentStreak = user?['current_streak'] ?? 0;
+            _totalMissions = stats['total_missions'] ?? 0;
             _currentGrowth = aiGrowth;
             _isLoading = false;
           });
-          
-          // Animate the tree up to the predicted growth
+
           _lottieController.animateTo(
-            _currentGrowth, 
-            curve: Curves.easeInOut, 
-            duration: const Duration(seconds: 2)
+            _currentGrowth,
+            curve: Curves.easeInOut,
+            duration: const Duration(seconds: 2),
           );
         }
       } else {
@@ -65,6 +66,27 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String get _growthLabel {
+    final pct = (_currentGrowth * 100).round();
+    if (pct >= 80) return 'Ancient Tree 🌳';
+    if (pct >= 60) return 'Tall Tree 🌲';
+    if (pct >= 40) return 'Growing Tree 🌿';
+    if (pct >= 20) return 'Sapling 🌱';
+    return 'Seedling 🌾';
+  }
+
+  String get _streakStatusMessage {
+    if (_currentStreak == 0) {
+      return 'Complete a mission today to start your streak!';
+    } else if (_currentStreak < 3) {
+      return 'Keep going! ${3 - _currentStreak} more day${(3 - _currentStreak) > 1 ? "s" : ""} to reach a Hot Streak.';
+    } else if (_currentStreak < 7) {
+      return '${7 - _currentStreak} more day${(7 - _currentStreak) > 1 ? "s" : ""} to reach max streak bonus! 💪';
+    } else {
+      return 'Max streak bonus active! Your tree grows 30% faster! 🔥';
     }
   }
 
@@ -76,6 +98,18 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
 
   @override
   Widget build(BuildContext context) {
+    final pct = (_currentGrowth * 100).round();
+    final streakTier = _currentStreak >= 7
+        ? 3
+        : _currentStreak >= 3
+            ? 2
+            : _currentStreak >= 1
+                ? 1
+                : 0;
+    final tierColors = [Colors.grey, const Color(0xFF5C8A52), Colors.orange, Colors.red];
+    final tierIcons = [Icons.eco_outlined, Icons.eco, Icons.local_fire_department, Icons.whatshot];
+    final tierLabels = ['No Streak', 'Growing (+14%)', 'Hot Streak (+22%)', 'On Fire! (+30%) 🔥'];
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -98,101 +132,288 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
         backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD6A573),
-                borderRadius: BorderRadius.circular(8),
-              ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 120),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+
+            // ── Stats row ─────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  const Icon(Icons.water_drop, color: Color(0xFF21558E)),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Longest Streak: $_longestStreak Days',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w400,
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.local_fire_department,
+                      iconColor: Colors.deepOrange,
+                      label: 'Current Streak',
+                      value: '$_currentStreak days',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.emoji_events,
+                      iconColor: Colors.amber,
+                      label: 'Longest Streak',
+                      value: '$_longestStreak days',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.check_circle_outline,
+                      iconColor: const Color(0xFF5C8A52),
+                      label: 'Missions Done',
+                      value: '$_totalMissions',
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 20),
-              width: double.infinity,
-              color: Theme.of(context).cardColor,
+
+            const SizedBox(height: 16),
+
+            // ── Lottie tree ───────────────────────────────────────────
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              height: 240,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Center(
-                child: _isLoading 
-                  ? const CircularProgressIndicator()
-                  : RepaintBoundary(
-                      child: Lottie.asset(
-                        'assets/animations/tree.json',
-                        controller: _lottieController,
-                        delegates: LottieDelegates(
-                          values: [
-                            ValueDelegate.opacity([
-                              '**',
-                              'Background',
-                              '**',
-                            ], value: 0),
-                            ValueDelegate.opacity(['**', 'Solid', '**'], value: 0),
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : RepaintBoundary(
+                        child: Lottie.asset(
+                          'assets/animations/tree.json',
+                          controller: _lottieController,
+                          delegates: LottieDelegates(
+                            values: [
+                              ValueDelegate.opacity(
+                                  ['**', 'Background', '**'], value: 0),
+                              ValueDelegate.opacity(
+                                  ['**', 'Solid', '**'], value: 0),
+                            ],
+                          ),
+                          onLoaded: (composition) {
+                            _lottieController.duration = composition.duration;
+                            _lottieController.value = 0.0;
+                            _lottieController.animateTo(
+                              _currentGrowth,
+                              curve: Curves.easeInOut,
+                              duration: const Duration(seconds: 2),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Growth % progress bar ─────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _growthLabel,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        Text(
+                          '$pct%',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3B5236),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: _currentGrowth,
+                        minHeight: 14,
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFF5C8A52)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Complete missions every day to advance your tree\'s stage.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Streak tier indicator ─────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'How Streaks Grow Your Tree',
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _streakStatusMessage,
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 14),
+                    ...List.generate(4, (i) {
+                      bool isActive = streakTier == i;
+                      bool isPassed = streakTier > i;
+                      final color = isPassed || isActive
+                          ? tierColors[i]
+                          : Colors.grey.shade300;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: color, width: 1.5),
+                              ),
+                              child: Icon(tierIcons[i],
+                                  size: 18, color: color),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                tierLabels[i],
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isActive
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isActive
+                                      ? tierColors[i]
+                                      : isPassed
+                                          ? Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.color
+                                          : Colors.grey,
+                                ),
+                              ),
+                            ),
+                            if (isActive)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: tierColors[i]
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'CURRENT',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: tierColors[i],
+                                  ),
+                                ),
+                              )
+                            else if (isPassed)
+                              Icon(Icons.check_circle,
+                                  color: tierColors[i], size: 18),
                           ],
                         ),
-                        onLoaded: (composition) {
-                          _lottieController.duration = composition.duration;
-                          _lottieController.value = 0.0;
-                          _lottieController.animateTo(_currentGrowth, curve: Curves.easeInOut, duration: const Duration(seconds: 2));
-                        },
-                      ),
-                    ),
+                      );
+                    }),
+                  ],
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD6A573),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.wb_sunny_rounded,
-                    color: Color(0xFFFFE082),
-                    size: 60,
-                  ),
-                  SizedBox(width: 20),
-                  Expanded(
-                    child: Text(
-                      'Your tree is growing strongly!\nComplete more tasks daily for a boost.',
+
+            const SizedBox(height: 16),
+
+            // ── Growth formula breakdown ──────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tree Growth Formula',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        height: 1.4,
-                      ),
+                          fontSize: 15, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    _FormulaRow(
+                        label: 'Mission Volume',
+                        hint: '(up to 30 missions)',
+                        weight: '45%',
+                        color: const Color(0xFF5C8A52)),
+                    const SizedBox(height: 8),
+                    _FormulaRow(
+                        label: 'Mission Difficulty',
+                        hint: 'Hard > Medium > Easy',
+                        weight: '25%',
+                        color: Colors.orange),
+                    const SizedBox(height: 8),
+                    _FormulaRow(
+                        label: 'Daily Streak',
+                        hint: '7-day streak = max bonus',
+                        weight: '30%',
+                        color: Colors.deepOrange),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 100),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
+
 
   Widget _buildBottomNav(BuildContext context) {
     return Stack(
@@ -310,6 +531,116 @@ class _TreeGrowthScreenState extends State<TreeGrowthScreen>
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Small stat card used in the 3-column top row.
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+
+  const _StatCard({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: iconColor, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 10, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Row showing a growth formula factor with its weight badge.
+class _FormulaRow extends StatelessWidget {
+  final String label;
+  final String hint;
+  final String weight;
+  final Color color;
+
+  const _FormulaRow({
+    required this.label,
+    required this.hint,
+    required this.weight,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 36,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                hint,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            weight,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

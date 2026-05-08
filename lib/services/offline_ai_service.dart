@@ -12,14 +12,10 @@ class OfflineAIService {
 
   Future<void> init() async {
     try {
-      // Attempt to load the TFLite model from assets
-      // We use a try-catch to detect if the model exists. 
-      // If it doesn't, we simply use the heuristic fallback.
       _interpreter = await Interpreter.fromAsset('assets/models/leafloop_model.tflite');
       _isLoaded = true;
       debugPrint("Offline AI: Model loaded successfully.");
     } catch (e) {
-      // Silencing the error since the heuristic fallback is the intended behavior when no model is provided
       debugPrint("Offline AI: No model found. Operating in heuristic mode.");
       _isLoaded = false;
     }
@@ -33,13 +29,6 @@ class OfflineAIService {
     }
 
     try {
-      // Input features mapping:
-      // Index 0: Energy Level (1-3)
-      // Index 1: Total Missions Completed
-      // Index 2: Easy Missions
-      // Index 3: Medium Missions
-      // Index 4: Hard Missions
-      // Index 5: Current Streak
       var input = [
         [
           (stats['energy_level'] ?? 2).toDouble(),
@@ -50,25 +39,25 @@ class OfflineAIService {
           (stats['current_streak'] ?? 0).toDouble(),
         ]
       ];
-      
-      // Output buffer
+
       var output = List.filled(1, 0.0).reshape([1, 1]);
-      
       _interpreter!.run(input, output);
-      
       double prediction = output[0][0];
       return prediction.clamp(0.0, 1.0);
     } catch (e) {
-      print("Offline AI: Inference error, falling back to heuristic. Error: $e");
+      debugPrint("Offline AI: Inference error, falling back to heuristic. Error: $e");
       return _calculateHeuristicGrowth(stats);
     }
   }
 
-  /// Heuristic fallback logic for growth prediction.
-  /// Weighting: 
-  /// - 60% based on total missions (capped at 100)
-  /// - 20% based on difficulty weights (harder = more growth)
-  /// - 20% based on consistency (streak)
+  /// Heuristic growth formula designed so players feel meaningful progress early.
+  ///
+  /// Growth sources (add up to 1.0 max):
+  ///   • Volume score   (45%) — sqrt curve; 30 missions ≈ full 45%
+  ///   • Difficulty score (25%) — hard missions count 3×, capped at 60 weighted points
+  ///   • Streak score   (30%) — 7-day streak ≈ full 30%; daily missions = biggest lever
+  ///
+  /// Using sqrt so the FIRST few completions feel rewarding instead of invisible.
   double _calculateHeuristicGrowth(Map<String, dynamic> stats) {
     double total = (stats['total_missions'] ?? 0).toDouble();
     double easy = (stats['easy_count'] ?? 0).toDouble();
@@ -76,18 +65,23 @@ class OfflineAIService {
     double hard = (stats['hard_count'] ?? 0).toDouble();
     double streak = (stats['current_streak'] ?? 0).toDouble();
 
-    // Base growth from volume (capped at 100 missions for 1.0 growth)
-    double volumeScore = (total / 100.0).clamp(0.0, 1.0);
+    // --- Volume score (45%): sqrt curve, saturates at 30 missions ---
+    // sqrt(1/30) ≈ 0.183 after 1 mission — immediately visible
+    double volumeScore = math.sqrt((total / 30.0).clamp(0.0, 1.0));
 
-    // Difficulty score (Harder missions contribute more)
-    double difficultyScore = ((easy * 1 + medium * 2 + hard * 3) / 200.0).clamp(0.0, 1.0);
+    // --- Difficulty score (25%): weighted XP, saturates at 60 pts ---
+    // Easy=1pt, Medium=2pt, Hard=3pt
+    double weightedPoints = (easy * 1) + (medium * 2) + (hard * 3);
+    double difficultyScore = (weightedPoints / 60.0).clamp(0.0, 1.0);
 
-    // Streak bonus (Consistency)
-    double streakScore = (streak / 30.0).clamp(0.0, 1.0);
+    // --- Streak score (30%): saturates at 7 consecutive days ---
+    // 1-day streak = ~14%, 3 days = ~43%, 7 days = 100%
+    double streakScore = math.sqrt((streak / 7.0).clamp(0.0, 1.0));
 
     // Combine with weights
-    double finalGrowth = (volumeScore * 0.6) + (difficultyScore * 0.2) + (streakScore * 0.2);
-    
+    double finalGrowth =
+        (volumeScore * 0.45) + (difficultyScore * 0.25) + (streakScore * 0.30);
+
     return finalGrowth.clamp(0.0, 1.0);
   }
 
