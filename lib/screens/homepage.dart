@@ -130,6 +130,9 @@ class _HomePageState extends State<HomePage> {
         }
       } else {
         // ── Regular User Home ─────────────────────────────────────────────
+        // Use the original strategy from the working commit: fetch missions
+        // by the user's energy_level difficulty (1=easy, 2=medium, 3=hard).
+        final int energyLevel = (user['energy_level'] as int?) ?? 2;
         final todayCount = await DatabaseHelper().getTodayCompletedCount(userId);
         final completedMissions =
             await DatabaseHelper().getUserCompletedMissions(userId);
@@ -139,22 +142,13 @@ class _HomePageState extends State<HomePage> {
             .map((m) => m['id'] as int)
             .toSet();
 
-        final allMissions = await DatabaseHelper().getAllMissions();
-        List<Map<String, dynamic>> missions = [];
-
-        if (allMissions.isNotEmpty) {
-          allMissions.shuffle();
-          // Pick one of each difficulty; fall back to any available mission.
-          final easyList   = allMissions.where((m) => (m['difficulty'] ?? 1) <= 1).toList();
-          final mediumList = allMissions.where((m) => (m['difficulty'] ?? 1) == 2).toList();
-          final hardList   = allMissions.where((m) => (m['difficulty'] ?? 1) >= 3).toList();
-
-          if (easyList.isNotEmpty)   missions.add(easyList.first);
-          if (mediumList.isNotEmpty) missions.add(mediumList.first);
-          if (hardList.isNotEmpty)   missions.add(hardList.first);
-
-          // If some difficulties are missing, pad with anything available.
-          if (missions.isEmpty) missions = allMissions.take(3).toList();
+        // Fetch missions at the user's difficulty level (3 missions).
+        // Fall back to all missions if none found at that specific difficulty.
+        List<Map<String, dynamic>> missions =
+            await DatabaseHelper().getMissionsByDifficulty(energyLevel, limit: 3);
+        if (missions.isEmpty) {
+          final all = await DatabaseHelper().getAllMissions();
+          missions = all.take(3).toList();
         }
 
         if (mounted) {
